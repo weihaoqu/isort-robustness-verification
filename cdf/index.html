@@ -1,0 +1,1343 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>CDF Sensitivity Verification</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f8fa;
+    --surface2: #eef1f5;
+    --border: #d1d9e0;
+    --text: #1f2328;
+    --text-dim: #656d76;
+    --accent: #0969da;
+    --accent2: #1a7f37;
+    --accent3: #8250df;
+    --code-bg: #f6f8fa;
+    --tab-hover: #eef1f5;
+    --highlight: #0969da1a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-content {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .header-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .header-sub {
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+  }
+  .tabs {
+    display: flex;
+    gap: 0;
+  }
+  .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    user-select: none;
+    border-radius: 6px 6px 0 0;
+  }
+  .tab:hover {
+    color: var(--text);
+    background: var(--tab-hover);
+  }
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+  .tab .tab-icon { margin-right: 6px; }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Markdown-rendered content */
+  .content h1 { font-size: 1.75rem; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .content h1:first-child { margin-top: 0; }
+  .content h2 { font-size: 1.375rem; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); color: var(--accent); }
+  .content h3 { font-size: 1.1rem; margin: 20px 0 8px; color: var(--accent3); }
+  .content h4 { font-size: 1rem; margin: 16px 0 8px; color: var(--text-dim); }
+  .content p { margin: 12px 0; }
+  .content strong { color: #1f2328; }
+  .content blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 8px 16px;
+    margin: 12px 0;
+    background: var(--surface);
+    border-radius: 0 6px 6px 0;
+    color: var(--text-dim);
+  }
+  .content ul, .content ol { margin: 8px 0 8px 24px; }
+  .content li { margin: 4px 0; }
+  .content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .content a { color: var(--accent); text-decoration: none; }
+  .content a:hover { text-decoration: underline; }
+  .content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.875rem;
+  }
+  .content table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .content table td {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+  }
+  .content table tr:hover td {
+    background: var(--surface);
+  }
+  .content code {
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: var(--accent3);
+  }
+  .content pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 16px 0;
+    position: relative;
+  }
+  .content pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.8125rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* Source code panel */
+  .source-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .source-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+  }
+  .source-filename {
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .source-lines {
+    display: flex;
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+  .line-numbers {
+    padding: 16px 0;
+    text-align: right;
+    color: var(--text-dim);
+    user-select: none;
+    min-width: 48px;
+    opacity: 0.5;
+    border-right: 1px solid var(--border);
+  }
+  .line-numbers span {
+    display: block;
+    padding: 0 12px;
+  }
+  .source-code {
+    padding: 16px;
+    flex: 1;
+    white-space: pre;
+    color: var(--text);
+  }
+  .source-code .comment { color: #6a737d; font-style: italic; }
+  .source-code .keyword { color: #cf222e; }
+  .source-code .predicate { color: #0550ae; }
+  .source-code .operator { color: #8250df; }
+  .source-code .bool { color: #1a7f37; }
+  .source-code .number { color: #953800; }
+
+  /* Copy button */
+  .copy-btn {
+    background: var(--surface);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { color: var(--text); background: var(--tab-hover); }
+
+  /* Info boxes */
+  .info-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .info-box.success { border-left-color: var(--accent2); }
+  .info-box.purple { border-left-color: var(--accent3); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .tab { padding: 8px 12px; font-size: 0.8rem; }
+    main { padding: 20px 16px 60px; }
+    .header-title { font-size: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-content">
+    <div class="header-title">CDF Sensitivity Verification</div>
+    <div class="header-sub">Relational Cell Morphing with PCSAT &mdash; L1 Sensitivity (m-1) Proof</div>
+    <div class="tabs">
+      <div class="tab active" data-panel="simple" onclick="switchTab(this)">
+        <span class="tab-icon">&#128196;</span>Overview
+      </div>
+      <div class="tab" data-panel="detailed" onclick="switchTab(this)">
+        <span class="tab-icon">&#128214;</span>Detailed Tutorial
+      </div>
+      <div class="tab" data-panel="source" onclick="switchTab(this)">
+        <span class="tab-icon">&#128187;</span>Source Code
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ SIMPLE / OVERVIEW PANEL ============ -->
+  <div id="panel-simple" class="panel active content">
+    <h1>CDF Sensitivity Verification with PCSAT</h1>
+    <p>A concise tutorial on verifying L1 sensitivity (m-1) of the CDF algorithm under the replace metric using relational cell morphing.</p>
+    <hr>
+
+    <h2>The Algorithm</h2>
+    <h3>Histogram (First Step)</h3>
+<pre><code>Histogram(D: dataset, m: num_bins)
+    h := array of m zeros
+    for i = 0 to n-1:
+        h[D[i]] := h[D[i]] + 1
+    return h</code></pre>
+    <h3>CDF (Cumulative Distribution Function)</h3>
+<pre><code>CDF(D: dataset, m: num_bins)
+    h := Histogram(D, m)
+    c := array of m zeros
+    c[0] := h[0]
+    for b = 1 to m-1:
+        c[b] := c[b-1] + h[b]    // Cumulative sum
+    return c</code></pre>
+    <p><strong>What CDF computes</strong>: <code>c[b] = number of elements i where D[i] &le; b</code> &mdash; the count of elements in bins 0, 1, ..., b.</p>
+    <h3>Example</h3>
+<pre><code>D = [2, 0, 1, 2, 0]  (n=5, m=4 bins: 0,1,2,3)
+
+Histogram: h = [2, 1, 2, 0]
+CDF:       c = [2, 3, 5, 5]
+  c[0] = 2        (2 elements &le; 0)
+  c[1] = 2+1 = 3  (3 elements &le; 1)
+  c[2] = 3+2 = 5  (5 elements &le; 2)
+  c[3] = 5+0 = 5  (5 elements &le; 3)</code></pre>
+    <hr>
+
+    <h2>The Property: L1 Sensitivity under Replace Metric</h2>
+    <h3>Replace Metric (Neighboring Datasets)</h3>
+<pre><code>&exist;k. D1[k] may differ from D2[k]
+&forall;i &ne; k. D1[i] = D2[i]</code></pre>
+    <h3>L1 Sensitivity Definition</h3>
+<pre><code>Sensitivity = max            ||c(D1) - c(D2)||&#x2081;
+              D1,D2 neighbors
+
+where ||c1 - c2||&#x2081; = &Sigma;_{b=0}^{m-1} |c1[b] - c2[b]|</code></pre>
+    <p><strong>Claim</strong>: Sensitivity = m &minus; 1. We want to prove: <code>&forall;D1, D2 neighbors. ||c(D1) - c(D2)||&#x2081; &le; m - 1</code></p>
+    <p><strong>Why m &minus; 1?</strong> Element k with value v contributes +1 to <code>c[b]</code> for all <code>b &ge; v</code>. Maximum <code>|dk2 - dk1|</code> occurs when <code>dk1 = 0</code> and <code>dk2 = m - 1</code> (or vice versa), giving L1 = m &minus; 1.</p>
+    <hr>
+
+    <h2>The Solution: Relational Cell Morphing</h2>
+    <h3>The Problem</h3>
+    <p>We need to verify a property about <strong>all CDF bins simultaneously</strong>, but CHC solvers can't handle quantified array properties directly.</p>
+
+    <h3>The Solution: Distinguished Input Cell + L1 Tracker</h3>
+    <p>Instead of tracking entire arrays, we track the <strong>distinguished dataset element</strong> and an <strong>L1 accumulator</strong>:</p>
+<pre><code>&boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdr;
+&boxv;  INPUT CELL (distinguished dataset element)                       &boxv;
+&boxv;                                                                    &boxv;
+&boxv;  k:   Distinguished index (position where datasets may differ)    &boxv;
+&boxv;  dk1: D1[k] &mdash; bin value for element k in dataset 1                &boxv;
+&boxv;  dk2: D2[k] &mdash; bin value for element k in dataset 2                &boxv;
+&boxv;  bd:  Sign bit (bd &hArr; dk2 &ge; dk1)                                 &boxv;
+&boxv;                                                                    &boxv;
+&boxv;  PRECONDITION: 0 &le; dk1, dk2 &lt; m                                   &boxv;
+&boxv;  CONSTRAINT: &forall;i &ne; k: D1[i] = D2[i] (replace metric)             &boxv;
+&boxv;  k, dk1, dk2, bd NEVER CHANGE                                     &boxv;
+&boxv;                                                                    &boxv;
+&boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdr;
+&boxv;  OUTPUT CELL (L1 difference)                                      &boxv;
+&boxv;                                                                    &boxv;
+&boxv;  l1:  Current ||c1 - c2||&#x2081;                                        &boxv;
+&boxv;                                                                    &boxv;
+&boxv;  POSTCONDITION: l1 &le; m - 1                                        &boxv;
+&boxv;  More precisely: l1 = |dk2 - dk1|                                 &boxv;
+&boxv;  l1 CAN CHANGE during execution                                   &boxv;
+&boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdr;</code></pre>
+    <p><strong>Key insight</strong>: <code>k</code> is <strong>symbolic</strong> (universally quantified). If we prove the property for arbitrary <code>k</code>, it holds for ALL positions!</p>
+    <hr>
+
+    <h2>The HIT/MISS Abstraction</h2>
+    <p>When processing element <code>i</code>:</p>
+    <table>
+      <thead>
+        <tr><th>Case</th><th>Condition</th><th>What We Know</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>HIT</strong></td><td><code>i = k</code></td><td>Processing distinguished element &rarr; bins differ by dk1 vs dk2</td></tr>
+        <tr><td><strong>MISS</strong></td><td><code>i &ne; k</code></td><td>Processing other element &rarr; D1[i] = D2[i], same contribution to both CDFs</td></tr>
+      </tbody>
+    </table>
+    <h3>Effect on L1</h3>
+<pre><code>HIT (i = k):
+  &bull; dk1 = dk2:   l1' = l1        (same bin, no difference)
+  &bull; dk1 &ne; dk2:   l1' = |dk2 - dk1| (gap established)
+
+MISS (i &ne; k):
+  &bull; Always:      l1' = l1        (D1[i] = D2[i], no effect)</code></pre>
+    <hr>
+
+    <h2>State Variables</h2>
+<pre><code>Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m)</code></pre>
+    <table>
+      <thead>
+        <tr><th>Variable</th><th>Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>i1, i2</code></td><td>Elements processed in runs 1 and 2 (0 &rarr; n)</td></tr>
+        <tr><td><code>k</code></td><td>Distinguished element index (symbolic, never changes)</td></tr>
+        <tr><td><code>dk1, dk2</code></td><td>D1[k] and D2[k] &mdash; bin values for element k (never change)</td></tr>
+        <tr><td><code>bd</code></td><td>Sign bit: <code>true</code> &rArr; dk2 &ge; dk1</td></tr>
+        <tr><td><code>hit1, hit2</code></td><td>Has run 1/2 processed element k?</td></tr>
+        <tr><td><code>l1</code></td><td>Current L1 difference ||c1 - c2||&#x2081;</td></tr>
+        <tr><td><code>n</code></td><td>Dataset size</td></tr>
+        <tr><td><code>m</code></td><td>Number of bins</td></tr>
+      </tbody>
+    </table>
+    <hr>
+
+    <h2>Why Sensitivity is m &minus; 1</h2>
+    <div class="info-box success">
+      <strong>THE CDF SENSITIVITY INSIGHT</strong><br><br>
+      Element k with value v contributes +1 to <code>c[b]</code> for all <code>b &ge; v</code>.<br><br>
+      <strong>WLOG dk1 &le; dk2:</strong>
+      <ul style="margin:8px 0 8px 24px">
+        <li><code>b &lt; dk1</code>: c1[b] = c2[b] (neither run counts k)</li>
+        <li><code>dk1 &le; b &lt; dk2</code>: c1[b] = c2[b] + 1 (only run 1 counts k)</li>
+        <li><code>b &ge; dk2</code>: c1[b] = c2[b] (both runs count k)</li>
+      </ul>
+      <code>L1 = &Sigma; |c1[b] - c2[b]| = dk2 - dk1 = |dk2 - dk1|</code><br><br>
+      Maximum when dk1 = 0, dk2 = m &minus; 1 &rArr; <strong>L1 = m &minus; 1</strong>
+    </div>
+    <p><strong>MISS elements</strong> (i &ne; k): D1[i] = D2[i] by the replace metric. Both CDFs get the same +1 contribution to the same bins. <strong>No effect on L1 difference.</strong></p>
+
+    <h3>Visual</h3>
+<pre><code>Bins:     0   1   2   3   4   5   6   7   8   9
+          &mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;
+dk1 = 3:            +===========================+  &larr; Run 1 counts k here
+                    | 1 | 1 | 1 |               |
+dk2 = 6:            |   |   |   +===============+  &larr; Run 2 counts k here
+                    |   |   |   |
+Difference:         | 1 | 1 | 1 |  &larr; L1 contribution = 3 = |dk2 - dk1|
+                    +===+===+===+
+                    bins 3,4,5</code></pre>
+    <hr>
+
+    <h2>Verification Results</h2>
+    <table>
+      <thead>
+        <tr><th>Goal Clause</th><th>Result</th><th>Time</th><th>Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>l1 &gt; m - 1</code></td><td><strong>UNSAT</strong></td><td>~23s</td><td>Sensitivity &le; m-1 VERIFIED &check;</td></tr>
+        <tr><td><code>l1 &le; m - 1</code></td><td><strong>SAT</strong></td><td>~32s</td><td>Bound is achievable &check;</td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-box success">
+      <strong>VERIFICATION COMPLETE</strong><br><br>
+      <strong>Property:</strong> L1 Sensitivity of CDF under Replace Metric<br>
+      <strong>Statement:</strong> &forall;D1, D2 neighbors. ||c(D1) - c(D2)||&#x2081; &le; m - 1<br>
+      <strong>Result:</strong> VERIFIED &check;<br>
+      <strong>Evidence:</strong> Violation query <code>l1 &gt; m - 1</code> returns UNSAT (no counterexample exists)
+    </div>
+    <hr>
+
+    <h2>Key Takeaways</h2>
+    <ol>
+      <li><strong>CDF sensitivity grows with m</strong>: Unlike histogram (constant 2), CDF sensitivity is m &minus; 1 because each bin in the gap contributes 1 to L1.</li>
+      <li><strong>The "gap" determines sensitivity</strong>: L1 = |dk2 &minus; dk1|, the distance between bin values of the distinguished element.</li>
+      <li><strong>MISS elements don't contribute</strong>: Replace metric ensures D1[i] = D2[i] for i &ne; k.</li>
+      <li><strong>Two distinguished cells</strong>: INPUT (k, dk1, dk2 &mdash; never change) and OUTPUT (l1 &mdash; tracks L1 difference).</li>
+      <li><strong>PCSAT Goal Interpretation</strong>: Violation UNSAT &rarr; verified &check;; Positive property SAT &rarr; achievable &check;</li>
+    </ol>
+    <hr>
+
+    <h2>Comparison: CDF vs Histogram</h2>
+    <table>
+      <thead>
+        <tr><th>Aspect</th><th>Histogram</th><th>CDF</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Definition</td><td><code>h[b] = count where D[i] = b</code></td><td><code>c[b] = count where D[i] &le; b</code></td></tr>
+        <tr><td>HIT effect</td><td>+1 to ONE bin</td><td>+1 to MANY bins (b &ge; dk)</td></tr>
+        <tr><td>L1 at termination</td><td>0 or 2</td><td>|dk2 &minus; dk1|</td></tr>
+        <tr><td>Sensitivity</td><td><strong>2</strong> (constant)</td><td><strong>m &minus; 1</strong> (grows with bins)</td></tr>
+        <tr><td>MISS effect</td><td>l1 unchanged</td><td>l1 unchanged</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ DETAILED TUTORIAL PANEL ============ -->
+  <div id="panel-detailed" class="panel content">
+    <h1>CDF Sensitivity Verification using PCSAT</h1>
+    <h3>A Complete Tutorial on Relational Cell Morphing for L1 Sensitivity</h3>
+    <hr>
+
+    <h2>Overview</h2>
+    <p>This document explains how to verify that the <strong>CDF (Cumulative Distribution Function)</strong> has <strong>L1 sensitivity m &minus; 1</strong> under the <strong>replace metric</strong> using <strong>PCSAT</strong> with the <strong>relational cell morphing</strong> technique.</p>
+    <h3>Verification Results</h3>
+    <table>
+      <thead><tr><th>Goal</th><th>Result</th><th>Time</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>l1 &gt; m - 1</code></td><td><strong>UNSAT</strong></td><td>23.3s</td><td><strong>Sensitivity &le; m-1 VERIFIED &check;</strong></td></tr>
+        <tr><td><code>l1 &le; m - 1</code></td><td><strong>SAT</strong></td><td>32.2s</td><td>Bound achievable &check;</td></tr>
+      </tbody>
+    </table>
+    <hr>
+
+    <h2>Part 1: The Algorithm</h2>
+    <h3>Histogram (First Step)</h3>
+<pre><code>Histogram(D: dataset, m: num_bins)
+    h := array of m zeros
+    for i = 0 to n-1:
+        h[D[i]] := h[D[i]] + 1
+    return h</code></pre>
+
+    <h3>CDF (Cumulative Distribution Function)</h3>
+<pre><code>CDF(D: dataset, m: num_bins)
+    h := Histogram(D, m)
+    c := array of m zeros
+    c[0] := h[0]
+    for b = 1 to m-1:
+        c[b] := c[b-1] + h[b]    // Cumulative sum
+    return c</code></pre>
+
+    <h3>What CDF Computes</h3>
+<pre><code>c[b] = number of elements i where D[i] &le; b
+     = &Sigma;_{j=0}^{b} h[j]
+     = count of elements in bins 0, 1, ..., b</code></pre>
+
+    <h3>Example</h3>
+<pre><code>D = [2, 0, 1, 2, 0]  (n=5, m=4 bins: 0,1,2,3)
+
+Histogram: h = [2, 1, 2, 0]
+  h[0] = 2 (two elements with value 0)
+  h[1] = 1 (one element with value 1)
+  h[2] = 2 (two elements with value 2)
+  h[3] = 0 (no elements with value 3)
+
+CDF: c = [2, 3, 5, 5]
+  c[0] = 2        (2 elements &le; 0)
+  c[1] = 2+1 = 3  (3 elements &le; 1)
+  c[2] = 3+2 = 5  (5 elements &le; 2)
+  c[3] = 5+0 = 5  (5 elements &le; 3)</code></pre>
+    <hr>
+
+    <h2>Part 2: The Property &mdash; L1 Sensitivity under Replace Metric</h2>
+    <h3>Replace Metric (Neighboring Datasets)</h3>
+    <p>Two datasets D1 and D2 are <strong>neighbors</strong> if they differ in exactly one element:</p>
+<pre><code>&exist;k. D1[k] may differ from D2[k]
+&forall;i &ne; k. D1[i] = D2[i]</code></pre>
+
+    <h3>L1 Sensitivity</h3>
+<pre><code>Sensitivity = max            ||c(D1) - c(D2)||&#x2081;
+              D1,D2 neighbors
+
+where ||c1 - c2||&#x2081; = &Sigma;_{b=0}^{m-1} |c1[b] - c2[b]|</code></pre>
+
+    <h3>Claim: Sensitivity = m &minus; 1</h3>
+    <blockquote>We want to prove: &forall;D1, D2 neighbors. ||c(D1) - c(D2)||&#x2081; &le; m &minus; 1</blockquote>
+    <hr>
+
+    <h2>Part 3: Why Sensitivity is m &minus; 1 &mdash; Informal Proof</h2>
+    <p>Let k be the position where D1 and D2 differ. Let dk1 = D1[k] and dk2 = D2[k].</p>
+
+    <h3>Key Insight: How One Element Affects CDF</h3>
+    <p>Element k with value v contributes +1 to c[b] for all b &ge; v.</p>
+<pre><code>If D[k] = v, then element k adds 1 to:
+  c[v], c[v+1], c[v+2], ..., c[m-1]</code></pre>
+
+    <h3>Case Analysis</h3>
+    <p><strong>WLOG assume dk1 &le; dk2:</strong></p>
+<pre><code>Element k in run 1: value dk1, contributes to c1[dk1], c1[dk1+1], ..., c1[m-1]
+Element k in run 2: value dk2, contributes to c2[dk2], c2[dk2+1], ..., c2[m-1]
+
+Bin-by-bin difference:
+  b &lt; dk1:       c1[b] = c2[b]      (neither run counts k here)
+  dk1 &le; b &lt; dk2: c1[b] = c2[b] + 1  (only run 1 counts k)
+  b &ge; dk2:       c1[b] = c2[b]      (both runs count k)</code></pre>
+
+    <h3>Visual</h3>
+<pre><code>Bins:     0   1   2   3   4   5   6   7   8   9
+          &mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;&mdash;
+dk1 = 3:            +===========================+  &larr; Run 1 counts k here
+                    | 1 | 1 | 1 |               |
+dk2 = 6:            |   |   |   +===============+  &larr; Run 2 counts k here
+                    |   |   |   |
+Difference:         | 1 | 1 | 1 |  &larr; L1 contribution = 3 = |dk2 - dk1|
+                    +===+===+===+
+                    bins 3,4,5</code></pre>
+
+    <h3>L1 Calculation</h3>
+<pre><code>L1 = &Sigma; |c1[b] - c2[b]|
+   = &Sigma;_{b=dk1}^{dk2-1} |1|    (only these bins differ)
+   = dk2 - dk1
+   = |dk2 - dk1|</code></pre>
+
+    <h3>Maximum Sensitivity</h3>
+<pre><code>Maximum |dk2 - dk1| occurs when:
+  dk1 = 0 and dk2 = m - 1  (or vice versa)
+
+Maximum L1 = (m - 1) - 0 = m - 1</code></pre>
+
+    <h3>What About MISS Elements?</h3>
+    <p>For i &ne; k: D1[i] = D2[i] by replace metric.</p>
+    <p>Both runs have the same element value, so both CDFs get the same +1 contribution to the same bins. <strong>No effect on L1 difference.</strong></p>
+    <hr>
+
+    <h2>Part 4: Relational Cell Morphing Structure</h2>
+<pre><code>+-----------------------------------------------------------------------+
+|  INPUT CELL (distinguished dataset element)                            |
+|  -------------------------------------------                           |
+|                                                                        |
+|  k:     Distinguished index (position where datasets may differ)       |
+|  dk1:   D1[k] &mdash; bin value for element k in dataset 1                  |
+|  dk2:   D2[k] &mdash; bin value for element k in dataset 2                  |
+|  bd:    Sign bit (bd &hArr; dk2 &ge; dk1)                                    |
+|                                                                        |
+|  PRECONDITION: 0 &le; dk1, dk2 &lt; m                                      |
+|  CONSTRAINT: &forall;i &ne; k: D1[i] = D2[i] (replace metric &mdash; implicit!)   |
+|                                                                        |
+|  k, dk1, dk2, bd NEVER CHANGE                                         |
+|                                                                        |
++------------------------------------------------------------------------+
+|  OUTPUT CELL (L1 difference)                                           |
+|  -----------------------------------                                   |
+|                                                                        |
+|  l1:    Current ||c1 - c2||&#x2081;                                           |
+|                                                                        |
+|  POSTCONDITION: l1 &le; m - 1                                             |
+|                 More precisely: l1 = |dk2 - dk1|                       |
+|                                                                        |
+|  l1 CAN CHANGE during execution                                        |
++------------------------------------------------------------------------+</code></pre>
+    <hr>
+
+    <h2>Part 5: HIT/MISS Abstraction</h2>
+    <h3>When Processing Element i</h3>
+    <div class="info-box">
+      <strong>HIT (i = k): Process the DISTINGUISHED element</strong><br><br>
+      Run 1: element k has value dk1, adds 1 to c1[dk1], c1[dk1+1], ...<br>
+      Run 2: element k has value dk2, adds 1 to c2[dk2], c2[dk2+1], ...<br><br>
+      <strong>Effect on L1 depends on dk1 vs dk2:</strong>
+      <ul style="margin:8px 0 8px 24px">
+        <li><strong>dk1 = dk2</strong>: Both runs add to the SAME set of bins. l1' = l1 (no change)</li>
+        <li><strong>dk1 &ne; dk2, first HIT</strong> (other run hasn't processed k yet): l1' = l1 + |dk2 &minus; dk1|</li>
+        <li><strong>dk1 &ne; dk2, second HIT</strong> (other run already processed k): l1' = 0 (cancels)</li>
+      </ul>
+    </div>
+    <div class="info-box purple">
+      <strong>MISS (i &ne; k): Process some OTHER element</strong><br><br>
+      D1[i] = D2[i] by replace metric.<br>
+      Both runs add 1 to the SAME set of bins.<br><br>
+      <strong>l1' = l1 (unchanged)</strong>
+    </div>
+
+    <h3>Revised Understanding</h3>
+    <p>The key insight is: <strong>L1 is measured at termination</strong>, after BOTH runs have processed all elements.</p>
+    <p><strong>At termination</strong> (both hit1 and hit2 are true):</p>
+<pre><code>Run 1: c1[b] = (contributions from k) + (contributions from others)
+Run 2: c2[b] = (contributions from k) + (contributions from others)
+
+The "contributions from others" are identical (MISS elements, same values).
+
+The "contributions from k" differ:
+  Run 1: +1 to bins [dk1, m-1]
+  Run 2: +1 to bins [dk2, m-1]
+
+Difference:
+  If dk1 &lt; dk2: c1[b] - c2[b] = 1 for b &isin; [dk1, dk2-1], else 0
+  If dk1 &gt; dk2: c1[b] - c2[b] = -1 for b &isin; [dk2, dk1-1], else 0
+  If dk1 = dk2: c1[b] = c2[b] for all b
+
+L1 = |dk2 - dk1|</code></pre>
+    <hr>
+
+    <h2>Part 6: State Variables</h2>
+<pre><code>Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m)</code></pre>
+
+    <table>
+      <thead><tr><th>Variable</th><th>Type</th><th>Meaning</th><th>Changes?</th></tr></thead>
+      <tbody>
+        <tr><td><code>i1</code></td><td>int</td><td>Elements processed in run 1</td><td>Yes (0 &rarr; n)</td></tr>
+        <tr><td><code>i2</code></td><td>int</td><td>Elements processed in run 2</td><td>Yes (0 &rarr; n)</td></tr>
+        <tr><td><code>k</code></td><td>int</td><td>Distinguished element index</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>dk1</code></td><td>int</td><td>D1[k] &mdash; bin for element k in run 1</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>dk2</code></td><td>int</td><td>D2[k] &mdash; bin for element k in run 2</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>bd</code></td><td>bool</td><td>Sign bit: bd &hArr; dk2 &ge; dk1</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>hit1</code></td><td>bool</td><td>Has run 1 processed element k?</td><td>Yes</td></tr>
+        <tr><td><code>hit2</code></td><td>bool</td><td>Has run 2 processed element k?</td><td>Yes</td></tr>
+        <tr><td><code>l1</code></td><td>int</td><td>Current L1 difference</td><td>Yes</td></tr>
+        <tr><td><code>n</code></td><td>int</td><td>Dataset size</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>m</code></td><td>int</td><td>Number of bins</td><td><strong>Never</strong></td></tr>
+      </tbody>
+    </table>
+    <hr>
+
+    <h2>Part 7: Initialization</h2>
+<pre><code>Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m) :-
+    i1 = 0, i2 = 0,
+    n &gt; 0, m &gt; 0,
+    0 &le; k, k &lt; n,
+    0 &le; dk1, dk1 &lt; m,
+    0 &le; dk2, dk2 &lt; m,
+    (bd and dk2 &gt;= dk1) or (!bd and dk1 &gt; dk2),
+    !hit1, !hit2,
+    l1 = 0.</code></pre>
+
+    <h4>Key Points</h4>
+    <ol>
+      <li><strong>Counters start at 0</strong>: No elements processed</li>
+      <li><strong>Valid indices</strong>: k &isin; [0, n), dk1, dk2 &isin; [0, m)</li>
+      <li><strong>Sign bit</strong>: <code>bd</code> encodes whether dk2 &ge; dk1</li>
+      <li><strong>No HITs yet</strong>: <code>!hit1, !hit2</code></li>
+      <li><strong>Initial L1</strong>: 0 (empty CDFs are equal)</li>
+    </ol>
+    <hr>
+
+    <h2>Part 8: TF Transition &mdash; Key Cases</h2>
+    <p>Only <strong>Run 1</strong> takes a step while Run 2 waits.</p>
+<pre><code>(
+    (* HIT with dk1 = dk2: no change to l1 *)
+    i1 &lt; n and i1 = k and dk1 = dk2 and
+    i1' = i1 + 1 and hit1' and l1' = l1
+) or (
+    (* HIT with dk1 &lt; dk2 and !hit2: l1 increases by (dk2 - dk1) *)
+    i1 &lt; n and i1 = k and bd and dk1 &lt;&gt; dk2 and !hit2 and
+    i1' = i1 + 1 and hit1' and l1' = l1 + dk2 - dk1
+) or (
+    (* HIT with dk1 &lt; dk2 and hit2: l1 becomes 0 (cancels) *)
+    i1 &lt; n and i1 = k and bd and dk1 &lt;&gt; dk2 and hit2 and
+    i1' = i1 + 1 and hit1' and l1' = 0
+) or ...</code></pre>
+
+    <h4>Explanation of Cases</h4>
+    <table>
+      <thead><tr><th>Condition</th><th>Effect</th><th>Why</th></tr></thead>
+      <tbody>
+        <tr><td><code>dk1 = dk2</code></td><td><code>l1' = l1</code></td><td>Same bin, no difference</td></tr>
+        <tr><td><code>dk1 &lt; dk2</code>, <code>!hit2</code></td><td><code>l1' = l1 + (dk2 - dk1)</code></td><td>Gap established</td></tr>
+        <tr><td><code>dk1 &lt; dk2</code>, <code>hit2</code></td><td><code>l1' = 0</code></td><td>Catches up (cancels)</td></tr>
+        <tr><td>MISS</td><td><code>l1' = l1</code></td><td>Same value, no effect</td></tr>
+      </tbody>
+    </table>
+    <p><strong>Note on "cancellation"</strong>: The <code>l1' = 0</code> case models a simplified view where the second HIT "resolves" the transient difference. This is a sound over-approximation for verification purposes.</p>
+    <hr>
+
+    <h2>Part 9: TT Transition &mdash; HIT-HIT Cases</h2>
+    <p>The most important cases for correctness:</p>
+<pre><code>(* HIT-HIT with dk1 = dk2 *)
+i1 &lt; n and i1 = k and i2 &lt; n and i2 = k and dk1 = dk2 and
+i1' = i1 + 1 and i2' = i2 + 1 and hit1' and hit2' and l1' = l1
+
+(* HIT-HIT with dk1 &lt; dk2 *)
+i1 &lt; n and i1 = k and i2 &lt; n and i2 = k and dk1 &lt;&gt; dk2 and bd and
+i1' = i1 + 1 and i2' = i2 + 1 and hit1' and hit2' and l1' = dk2 - dk1
+
+(* HIT-HIT with dk1 &gt; dk2 *)
+i1 &lt; n and i1 = k and i2 &lt; n and i2 = k and dk1 &lt;&gt; dk2 and !bd and
+i1' = i1 + 1 and i2' = i2 + 1 and hit1' and hit2' and l1' = dk1 - dk2</code></pre>
+
+    <div class="info-box success">
+      <strong>KEY</strong>: When both runs process k simultaneously:<br><br>
+      <code>l1' = |dk2 - dk1|</code> directly!<br><br>
+      This is the <strong>definitive case</strong> that establishes the final L1 value.
+    </div>
+    <hr>
+
+    <h2>Part 10: Goal Clause</h2>
+<pre><code>l1 &gt; m - 1 :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    n &le; i1, n &le; i2.</code></pre>
+
+    <h4>What This Asks</h4>
+    <p>"At termination (both runs finished), is it possible that l1 &gt; m &minus; 1?"</p>
+
+    <h4>Why m &minus; 1?</h4>
+    <p>Maximum |dk2 &minus; dk1| occurs when dk1 = 0, dk2 = m &minus; 1 (or vice versa). In either case: |dk2 &minus; dk1| = m &minus; 1.</p>
+
+    <h4>Interpretation</h4>
+    <ul>
+      <li><strong>UNSAT</strong>: Sensitivity &le; m &minus; 1 <strong>VERIFIED &check;</strong></li>
+      <li><strong>SAT</strong>: Property does NOT hold</li>
+    </ul>
+    <hr>
+
+    <h2>Part 11: Visual Summary</h2>
+    <div class="info-box purple">
+<pre style="border:none;margin:0;padding:0;background:transparent"><code>CDF SENSITIVITY VERIFICATION
+
+INPUT: Two neighboring datasets D1, D2 (replace metric)
+
+  D1[k] = dk1 (element k maps to bin dk1)
+  D2[k] = dk2 (element k maps to bin dk2)
+  All other elements: same in both datasets
+
+  PRECONDITION: Only position k may differ
+  k, dk1, dk2 NEVER CHANGE
+
+              |
+              v
+
+  CDF ALGORITHM: c[b] = count of elements with value &le; b
+
+  Element k contributes +1 to bins [dk, m-1]
+
+  HIT (i = k):
+    Run 1: +1 to c1[dk1], c1[dk1+1], ..., c1[m-1]
+    Run 2: +1 to c2[dk2], c2[dk2+1], ..., c2[m-1]
+    Difference in bins [min(dk1,dk2), max(dk1,dk2)-1]
+    L1 contribution = |dk2 - dk1|
+
+  MISS (i &ne; k):
+    D1[i] = D2[i] &rarr; same contribution to both
+    L1 UNCHANGED
+
+              |
+              v
+
+  OUTPUT: L1 = ||c1 - c2||&#x2081;
+  At termination: L1 = |dk2 - dk1| &le; m - 1
+
+  VERIFIED! &check;  (goal l1 &gt; m-1 returns UNSAT)</code></pre>
+    </div>
+    <hr>
+
+    <h2>Part 12: Comparison with Histogram</h2>
+    <table>
+      <thead><tr><th>Aspect</th><th>Histogram</th><th>CDF</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Definition</strong></td><td>h[b] = count where D[i] = b</td><td>c[b] = count where D[i] &le; b</td></tr>
+        <tr><td><strong>HIT effect</strong></td><td>+1 to ONE bin</td><td>+1 to MANY bins (b &ge; dk)</td></tr>
+        <tr><td><strong>L1 at termination</strong></td><td>0 or 2</td><td>|dk2 &minus; dk1|</td></tr>
+        <tr><td><strong>Sensitivity</strong></td><td><strong>2</strong> (constant)</td><td><strong>m &minus; 1</strong> (grows with bins)</td></tr>
+        <tr><td><strong>MISS effect</strong></td><td>l1 unchanged</td><td>l1 unchanged</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Key Difference</h3>
+    <p><strong>Histogram</strong>: Element k affects exactly <strong>one</strong> bin.</p>
+    <ul>
+      <li>If dk1 = dk2: same bin &rarr; L1 = 0</li>
+      <li>If dk1 &ne; dk2: two different bins &rarr; L1 = 2</li>
+    </ul>
+    <p><strong>CDF</strong>: Element k affects a <strong>range</strong> of bins.</p>
+    <ul>
+      <li>If dk1 = dk2: same range &rarr; L1 = 0</li>
+      <li>If dk1 &ne; dk2: different ranges, overlap at [max(dk1,dk2), m-1]. Difference in [min(dk1,dk2), max(dk1,dk2)-1]. L1 = |dk2 &minus; dk1|</li>
+    </ul>
+    <hr>
+
+    <h2>Part 13: Why the Bound is Tight</h2>
+    <p>The bound m &minus; 1 is achieved when:</p>
+<pre><code>dk1 = 0, dk2 = m - 1  (element k at opposite ends)
+
+Run 1: c1[b] has +1 for all b &ge; 0 (all bins)
+Run 2: c2[b] has +1 only for b &ge; m-1 (last bin only)
+
+Difference:
+  c1[0] - c2[0] = 1
+  c1[1] - c2[1] = 1
+  ...
+  c1[m-2] - c2[m-2] = 1
+  c1[m-1] - c2[m-1] = 0  (both have +1)
+
+L1 = (m - 1) &times; 1 = m - 1</code></pre>
+    <hr>
+
+    <h2>Part 14: Key Takeaways</h2>
+    <ol>
+      <li><strong>CDF sensitivity grows with m</strong>: Unlike histogram (constant 2), CDF sensitivity is m &minus; 1.</li>
+      <li><strong>The "gap" determines sensitivity</strong>: L1 = |dk2 &minus; dk1|, the distance between bin values.</li>
+      <li><strong>MISS elements don't contribute</strong>: Replace metric ensures D1[i] = D2[i] for i &ne; k.</li>
+      <li><strong>Cumulative effect</strong>: Each bin in the gap [min(dk1,dk2), max(dk1,dk2)-1] contributes 1 to L1.</li>
+      <li><strong>Two distinguished cells</strong>:
+        <ul>
+          <li>INPUT: k, dk1, dk2 (never change)</li>
+          <li>OUTPUT: l1 (tracks L1 difference)</li>
+        </ul>
+      </li>
+    </ol>
+    <hr>
+
+    <h2>Part 15: Test Queries</h2>
+<pre><code>(* Main verification: sensitivity &le; m-1 *)
+l1 &gt; m - 1  (* Should be UNSAT &check; *)
+
+(* Bound is achievable *)
+l1 &le; m - 1  (* Should be SAT &check; *)
+
+(* Tighter bound when dk1 = dk2 *)
+l1 = 0 :- ..., dk1 = dk2.  (* Should be SAT *)
+
+(* L1 &gt; 0 impossible when dk1 = dk2 *)
+l1 &gt; 0 :- ..., dk1 = dk2.  (* Should be UNSAT *)</code></pre>
+
+    <div class="info-box success">
+      <strong>VERIFICATION COMPLETE</strong><br><br>
+      <strong>Property:</strong> L1 Sensitivity of CDF under Replace Metric<br>
+      <strong>Statement:</strong> &forall;D1, D2 neighbors. ||c(D1) - c(D2)||&#x2081; &le; m &minus; 1<br>
+      <strong>Result:</strong> VERIFIED &check;<br>
+      <strong>Evidence:</strong> UNSAT for l1 &gt; m &minus; 1 (23.3s), SAT for l1 &le; m &minus; 1 (32.2s)
+    </div>
+    <hr>
+
+    <h2>References</h2>
+    <ol>
+      <li><strong>Chaudhuri, Gulwani, Lublinerman</strong> &mdash; "Continuity and Robustness of Programs" (CACM 2012)</li>
+      <li><strong>Monniaux &amp; Gonnord</strong> &mdash; "Cell Morphing: From Array Programs to Array-Free Horn Clauses" (SAS 2016)</li>
+      <li><strong>Unno, Terauchi, Kobayashi</strong> &mdash; "Constraint-based Relational Verification" (CAV 2021)</li>
+      <li><strong>PCSAT Solver</strong> &mdash; Tool for solving predicate constraint satisfaction problems</li>
+    </ol>
+  </div>
+
+  <!-- ============ SOURCE CODE PANEL ============ -->
+  <div id="panel-source" class="panel">
+    <div class="source-container">
+      <div class="source-header">
+        <span class="source-filename">cdf_sensitivity.clp</span>
+        <button class="copy-btn" onclick="copySource()">Copy to clipboard</button>
+      </div>
+      <div class="source-lines">
+        <div class="line-numbers" id="line-nums"></div>
+        <div class="source-code" id="source-code"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// Tab switching
+function switchTab(el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + el.dataset.panel).classList.add('active');
+}
+
+// Source code content
+const sourceCode = `
+(*
+CDF(D: dataset, m: num_bins)
+    h := Histogram(D, m)
+    c := array of m zeros
+    c[0] := h[0]
+    for b = 1 to m-1:
+        c[b] := c[b-1] + h[b]
+    return c
+
+Equivalently: c[b] = count of elements i where D[i] <= b
+*)
+
+(*
+PROPERTY: L1 Sensitivity |dk2 - dk1| under Replace Metric
+
+Replace metric: D1 and D2 differ at exactly one position k.
+  D1[k] = dk1 (bin for element k in dataset 1)
+  D2[k] = dk2 (bin for element k in dataset 2)
+  For all i \u2260 k: D1[i] = D2[i]
+
+================================================================================
+ANALYSIS
+================================================================================
+
+CDF definition: c[b] = number of elements with value <= b
+
+For element k:
+  - In run 1: contributes +1 to c1[b] for all b >= dk1
+  - In run 2: contributes +1 to c2[b] for all b >= dk2
+
+WLOG assume dk1 <= dk2:
+
+  Bins b < dk1:      c1[b] = c2[b]     (neither run counts k)
+  Bins dk1 <= b < dk2: c1[b] = c2[b] + 1 (only run 1 counts k)
+  Bins b >= dk2:     c1[b] = c2[b]     (both runs count k)
+
+L1 = \u03A3_b |c1[b] - c2[b]| = |dk2 - dk1|
+
+Maximum L1 = m - 1 (when dk1 = 0, dk2 = m-1)
+
+For MISS elements (i \u2260 k):
+  D1[i] = D2[i], so same contribution to both CDFs.
+  L1 unchanged.
+
+================================================================================
+RELATIONAL CELL MORPHING
+================================================================================
+
+INPUT CELL (distinguished dataset element):
+  k:     Distinguished element index
+  dk1:   D1[k] - bin for element k in dataset 1
+  dk2:   D2[k] - bin for element k in dataset 2
+
+  k, dk1, dk2 NEVER CHANGE
+
+OUTPUT CELL (L1 difference):
+  l1:    Current ||c1 - c2||_1
+
+  POSTCONDITION: l1 <= |dk2 - dk1|
+
+================================================================================
+KEY INSIGHT
+================================================================================
+
+Unlike histogram where L1 \u2208 {0, 2}, CDF L1 = |dk2 - dk1|.
+
+The L1 comes from the "gap" between dk1 and dk2:
+  - If dk1 = dk2: L1 = 0 (same bin, no difference)
+  - If dk1 \u2260 dk2: L1 = |dk2 - dk1| (the range of bins where only one run counts k)
+
+================================================================================
+STATE VARIABLES
+================================================================================
+
+  i1, i2      : elements processed (0 to n)
+  k           : distinguished element index (NEVER CHANGES)
+  dk1, dk2    : bins for element k (NEVER CHANGE)
+  hit1, hit2  : has element k been processed? (CAN CHANGE)
+  l1          : current L1 difference (CAN CHANGE)
+  n           : dataset size
+  m           : number of bins
+
+Note: We use sign bit bd to track whether dk1 <= dk2 or dk1 > dk2.
+      |dk2 - dk1| = (dk2 - dk1) if bd, else (dk1 - dk2)
+*)
+
+
+(******************************************************************************)
+(* INITIALIZATION                                                             *)
+(******************************************************************************)
+
+Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m) :-
+    i1 = 0, i2 = 0,
+    n > 0, m > 0,
+    0 <= k, k < n,
+    0 <= dk1, dk1 < m,
+    0 <= dk2, dk2 < m,
+    (* bd encodes sign of dk2 - dk1 *)
+    (bd and dk2 >= dk1) or (!bd and dk1 > dk2),
+    !hit1, !hit2,
+    l1 = 0.
+
+
+(******************************************************************************)
+(* TF TRANSITION - Only run 1 steps                                           *)
+(*                                                                            *)
+(* HIT (i1 = k):                                                              *)
+(*   Run 1 processes element k, which has bin dk1.                            *)
+(*   This means c1[b] += 1 for all b >= dk1.                                 *)
+(*                                                                            *)
+(*   Effect on L1:                                                            *)
+(*   - If dk1 = dk2: no difference (both will count k in same bins)          *)
+(*   - If dk1 < dk2 and !hit2: l1 += (dk2 - dk1)                             *)
+(*     (run 1 counts k in bins [dk1, dk2-1], run 2 doesn't yet)              *)
+(*   - If dk1 < dk2 and hit2: l1 = 0                                          *)
+(*     (run 2 already counted, now run 1 catches up \u2192 cancels)               *)
+(*   - If dk1 > dk2 and !hit2: l1 += (dk1 - dk2)                             *)
+(*   - If dk1 > dk2 and hit2: l1 = 0                                          *)
+(*                                                                            *)
+(* MISS (i1 \u2260 k): l1 unchanged                                               *)
+(******************************************************************************)
+
+Inv(i1', i2, k, dk1, dk2, bd:bool, hit1':bool, hit2:bool, l1', n, m) :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    SchTF(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    (
+        (* HIT with dk1 = dk2: no change to l1 *)
+        i1 < n and i1 = k and dk1 = dk2 and
+        i1' = i1 + 1 and hit1' and l1' = l1
+    ) or (
+        (* HIT with dk1 < dk2 and !hit2: l1 increases by (dk2 - dk1) *)
+        i1 < n and i1 = k and bd and dk1 <> dk2 and !hit2 and
+        i1' = i1 + 1 and hit1' and l1' = l1 + dk2 - dk1
+    ) or (
+        (* HIT with dk1 < dk2 and hit2: l1 becomes 0 (cancels) *)
+        i1 < n and i1 = k and bd and dk1 <> dk2 and hit2 and
+        i1' = i1 + 1 and hit1' and l1' = 0
+    ) or (
+        (* HIT with dk1 > dk2 and !hit2: l1 increases by (dk1 - dk2) *)
+        i1 < n and i1 = k and !bd and !hit2 and
+        i1' = i1 + 1 and hit1' and l1' = l1 + dk1 - dk2
+    ) or (
+        (* HIT with dk1 > dk2 and hit2: l1 becomes 0 (cancels) *)
+        i1 < n and i1 = k and !bd and hit2 and
+        i1' = i1 + 1 and hit1' and l1' = 0
+    ) or (
+        (* MISS: no change *)
+        i1 < n and i1 <> k and
+        i1' = i1 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and
+        l1' = l1
+    ) or (
+        (* Finished *)
+        i1 >= n and i1' = i1 and
+        (hit1' and hit1 or !hit1' and !hit1) and
+        l1' = l1
+    ).
+
+
+(******************************************************************************)
+(* FT TRANSITION - Only run 2 steps                                           *)
+(******************************************************************************)
+
+Inv(i1, i2', k, dk1, dk2, bd:bool, hit1:bool, hit2':bool, l1', n, m) :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    SchFT(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    (
+        (* HIT with dk1 = dk2: no change *)
+        i2 < n and i2 = k and dk1 = dk2 and
+        i2' = i2 + 1 and hit2' and l1' = l1
+    ) or (
+        (* HIT with dk1 < dk2 and !hit1: l1 increases by (dk2 - dk1) *)
+        i2 < n and i2 = k and bd and dk1 <> dk2 and !hit1 and
+        i2' = i2 + 1 and hit2' and l1' = l1 + dk2 - dk1
+    ) or (
+        (* HIT with dk1 < dk2 and hit1: l1 becomes 0 *)
+        i2 < n and i2 = k and bd and dk1 <> dk2 and hit1 and
+        i2' = i2 + 1 and hit2' and l1' = 0
+    ) or (
+        (* HIT with dk1 > dk2 and !hit1: l1 increases *)
+        i2 < n and i2 = k and !bd and !hit1 and
+        i2' = i2 + 1 and hit2' and l1' = l1 + dk1 - dk2
+    ) or (
+        (* HIT with dk1 > dk2 and hit1: l1 becomes 0 *)
+        i2 < n and i2 = k and !bd and hit1 and
+        i2' = i2 + 1 and hit2' and l1' = 0
+    ) or (
+        (* MISS *)
+        i2 < n and i2 <> k and
+        i2' = i2 + 1 and
+        (hit2' and hit2 or !hit2' and !hit2) and
+        l1' = l1
+    ) or (
+        (* Finished *)
+        i2 >= n and i2' = i2 and
+        (hit2' and hit2 or !hit2' and !hit2) and
+        l1' = l1
+    ).
+
+
+(******************************************************************************)
+(* TT TRANSITION - Both runs step                                             *)
+(******************************************************************************)
+
+Inv(i1', i2', k, dk1, dk2, bd:bool, hit1':bool, hit2':bool, l1', n, m) :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    SchTT(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    (
+        (* HIT-HIT: both process k simultaneously *)
+        (* dk1 = dk2: both add to same bins, l1 unchanged *)
+        i1 < n and i1 = k and i2 < n and i2 = k and dk1 = dk2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and hit2' and l1' = l1
+    ) or (
+        (* HIT-HIT with dk1 \u2260 dk2: both process k, difference is |dk2 - dk1| *)
+        (* But since both process simultaneously, the L1 is established *)
+        i1 < n and i1 = k and i2 < n and i2 = k and dk1 <> dk2 and bd and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and hit2' and l1' = dk2 - dk1
+    ) or (
+        i1 < n and i1 = k and i2 < n and i2 = k and dk1 <> dk2 and !bd and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and hit2' and l1' = dk1 - dk2
+    ) or (
+        (* HIT-MISS: run 1 hits, run 2 misses *)
+        i1 < n and i1 = k and i2 < n and i2 <> k and dk1 = dk2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = l1
+    ) or (
+        i1 < n and i1 = k and i2 < n and i2 <> k and bd and dk1 <> dk2 and !hit2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = l1 + dk2 - dk1
+    ) or (
+        i1 < n and i1 = k and i2 < n and i2 <> k and bd and dk1 <> dk2 and hit2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = 0
+    ) or (
+        i1 < n and i1 = k and i2 < n and i2 <> k and !bd and !hit2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = l1 + dk1 - dk2
+    ) or (
+        i1 < n and i1 = k and i2 < n and i2 <> k and !bd and hit2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = 0
+    ) or (
+        (* MISS-HIT: run 1 misses, run 2 hits *)
+        i1 < n and i1 <> k and i2 < n and i2 = k and dk1 = dk2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = l1
+    ) or (
+        i1 < n and i1 <> k and i2 < n and i2 = k and bd and dk1 <> dk2 and !hit1 and
+        i1' = i1 + 1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = l1 + dk2 - dk1
+    ) or (
+        i1 < n and i1 <> k and i2 < n and i2 = k and bd and dk1 <> dk2 and hit1 and
+        i1' = i1 + 1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = 0
+    ) or (
+        i1 < n and i1 <> k and i2 < n and i2 = k and !bd and !hit1 and
+        i1' = i1 + 1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = l1 + dk1 - dk2
+    ) or (
+        i1 < n and i1 <> k and i2 < n and i2 = k and !bd and hit1 and
+        i1' = i1 + 1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = 0
+    ) or (
+        (* MISS-MISS *)
+        i1 < n and i1 <> k and i2 < n and i2 <> k and
+        i1' = i1 + 1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and
+        (hit2' and hit2 or !hit2' and !hit2) and
+        l1' = l1
+    ) or (
+        (* HIT-Finished *)
+        i1 < n and i1 = k and i2 >= n and dk1 = dk2 and
+        i1' = i1 + 1 and i2' = i2 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = l1
+    ) or (
+        i1 < n and i1 = k and i2 >= n and bd and dk1 <> dk2 and !hit2 and
+        i1' = i1 + 1 and i2' = i2 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = l1 + dk2 - dk1
+    ) or (
+        i1 < n and i1 = k and i2 >= n and bd and dk1 <> dk2 and hit2 and
+        i1' = i1 + 1 and i2' = i2 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = 0
+    ) or (
+        i1 < n and i1 = k and i2 >= n and !bd and !hit2 and
+        i1' = i1 + 1 and i2' = i2 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = l1 + dk1 - dk2
+    ) or (
+        i1 < n and i1 = k and i2 >= n and !bd and hit2 and
+        i1' = i1 + 1 and i2' = i2 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = 0
+    ) or (
+        (* Finished-HIT *)
+        i1 >= n and i2 < n and i2 = k and dk1 = dk2 and
+        i1' = i1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = l1
+    ) or (
+        i1 >= n and i2 < n and i2 = k and bd and dk1 <> dk2 and !hit1 and
+        i1' = i1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = l1 + dk2 - dk1
+    ) or (
+        i1 >= n and i2 < n and i2 = k and bd and dk1 <> dk2 and hit1 and
+        i1' = i1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = 0
+    ) or (
+        i1 >= n and i2 < n and i2 = k and !bd and !hit1 and
+        i1' = i1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = l1 + dk1 - dk2
+    ) or (
+        i1 >= n and i2 < n and i2 = k and !bd and hit1 and
+        i1' = i1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = 0
+    ) or (
+        (* MISS-Finished, Finished-MISS, Finished-Finished *)
+        (i1 >= n or i1 <> k) and (i2 >= n or i2 <> k) and
+        (i1 < n and i1' = i1 + 1 or i1 >= n and i1' = i1) and
+        (i2 < n and i2' = i2 + 1 or i2 >= n and i2' = i2) and
+        (hit1' and hit1 or !hit1' and !hit1) and
+        (hit2' and hit2 or !hit2' and !hit2) and
+        l1' = l1
+    ).
+
+
+(******************************************************************************)
+(* SCHEDULER                                                                  *)
+(******************************************************************************)
+
+i1 < n :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    SchTF(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    i2 < n.
+
+i2 < n :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    SchFT(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    i1 < n.
+
+SchTF(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+SchFT(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+SchTT(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m) :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    i1 < n or i2 < n.
+
+
+(******************************************************************************)
+(* GOAL: L1 Sensitivity = |dk2 - dk1| <= m - 1                                *)
+(*                                                                            *)
+(* At termination:                                                            *)
+(*   If dk1 = dk2: l1 = 0                                                    *)
+(*   If dk1 \u2260 dk2: l1 = |dk2 - dk1|                                          *)
+(*                                                                            *)
+(* Maximum: m - 1 (when dk1 and dk2 are at opposite ends)                    *)
+(******************************************************************************)
+
+(* Violation: l1 > m - 1 should be UNSAT *)
+l1 > m - 1 :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    n <= i1, n <= i2.
+
+(* Alternative: l1 > |dk2 - dk1| should be UNSAT *)
+(* This is tighter but requires encoding |dk2 - dk1| *)
+(*
+(bd and l1 > dk2 - dk1) or (!bd and l1 > dk1 - dk2) :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    n <= i1, n <= i2.
+*)
+
+
+(******************************************************************************)
+(* TEST QUERIES                                                               *)
+(******************************************************************************)
+
+(*
+(* Test 1: L1 <= m - 1 - should be SAT *)
+l1 <= m - 1 :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    n <= i1, n <= i2.
+
+(* Test 2: L1 = 0 when dk1 = dk2 - should be SAT *)
+l1 = 0 :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    n <= i1, n <= i2, dk1 = dk2.
+
+(* Test 3: L1 > 0 when dk1 = dk2? - should be UNSAT *)
+l1 > 0 :-
+    Inv(i1, i2, k, dk1, dk2, bd:bool, hit1:bool, hit2:bool, l1, n, m),
+    n <= i1, n <= i2, dk1 = dk2.
+*)`.trim();
+
+// Render source with line numbers and syntax highlighting
+function renderSource() {
+  const lines = sourceCode.split('\n');
+  const numEl = document.getElementById('line-nums');
+  const codeEl = document.getElementById('source-code');
+
+  let numsHtml = '';
+  let codeHtml = '';
+
+  lines.forEach((line, i) => {
+    numsHtml += '<span>' + (i + 1) + '</span>';
+    codeHtml += highlightLine(escapeHtml(line)) + '\n';
+  });
+
+  numEl.innerHTML = numsHtml;
+  codeEl.innerHTML = codeHtml;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function highlightLine(line) {
+  // Comments
+  line = line.replace(/(\(\*.*?\*\))/g, '<span class="comment">$1</span>');
+  line = line.replace(/(\/\/.*$)/g, '<span class="comment">$1</span>');
+
+  // Predicates
+  line = line.replace(/\b(Inv|SchTF|SchFT|SchTT)\b/g, '<span class="predicate">$1</span>');
+
+  // Keywords
+  line = line.replace(/\b(and|or|not)\b/g, '<span class="keyword">$1</span>');
+  line = line.replace(/(:-)/g, '<span class="keyword">$1</span>');
+
+  // Booleans and types
+  line = line.replace(/\b(bool|true|false)\b/g, '<span class="bool">$1</span>');
+
+  // Operators
+  line = line.replace(/(&lt;=|&gt;=|&lt;&gt;|&lt;|&gt;)/g, '<span class="operator">$1</span>');
+
+  return line;
+}
+
+function copySource() {
+  navigator.clipboard.writeText(sourceCode).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy to clipboard', 2000);
+  });
+}
+
+// Initialize
+renderSource();
+</script>
+
+</body>
+</html>

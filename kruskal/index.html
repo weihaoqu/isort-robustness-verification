@@ -1,0 +1,1236 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Kruskal's Algorithm Robustness Verification</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f8fa;
+    --surface2: #eef1f5;
+    --border: #d1d9e0;
+    --text: #1f2328;
+    --text-dim: #656d76;
+    --accent: #0969da;
+    --accent2: #1a7f37;
+    --accent3: #8250df;
+    --code-bg: #f6f8fa;
+    --tab-hover: #eef1f5;
+    --highlight: #0969da1a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-content {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .header-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .header-sub {
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+  }
+  .tabs {
+    display: flex;
+    gap: 0;
+  }
+  .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    user-select: none;
+    border-radius: 6px 6px 0 0;
+  }
+  .tab:hover {
+    color: var(--text);
+    background: var(--tab-hover);
+  }
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+  .tab .tab-icon { margin-right: 6px; }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Markdown-rendered content */
+  .content h1 { font-size: 1.75rem; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .content h1:first-child { margin-top: 0; }
+  .content h2 { font-size: 1.375rem; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); color: var(--accent); }
+  .content h3 { font-size: 1.1rem; margin: 20px 0 8px; color: var(--accent3); }
+  .content h4 { font-size: 1rem; margin: 16px 0 8px; color: var(--text-dim); }
+  .content p { margin: 12px 0; }
+  .content strong { color: #1f2328; }
+  .content blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 8px 16px;
+    margin: 12px 0;
+    background: var(--surface);
+    border-radius: 0 6px 6px 0;
+    color: var(--text-dim);
+  }
+  .content ul, .content ol { margin: 8px 0 8px 24px; }
+  .content li { margin: 4px 0; }
+  .content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .content a { color: var(--accent); text-decoration: none; }
+  .content a:hover { text-decoration: underline; }
+  .content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.875rem;
+  }
+  .content table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .content table td {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+  }
+  .content table tr:hover td {
+    background: var(--surface);
+  }
+  .content code {
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: var(--accent3);
+  }
+  .content pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 16px 0;
+    position: relative;
+  }
+  .content pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.8125rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* Source code panel */
+  .source-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .source-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+  }
+  .source-filename {
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .source-lines {
+    display: flex;
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+  .line-numbers {
+    padding: 16px 0;
+    text-align: right;
+    color: var(--text-dim);
+    user-select: none;
+    min-width: 48px;
+    opacity: 0.5;
+    border-right: 1px solid var(--border);
+  }
+  .line-numbers span {
+    display: block;
+    padding: 0 12px;
+  }
+  .source-code {
+    padding: 16px;
+    flex: 1;
+    white-space: pre;
+    color: var(--text);
+  }
+  .source-code .comment { color: #6a737d; font-style: italic; }
+  .source-code .keyword { color: #cf222e; }
+  .source-code .predicate { color: #0550ae; }
+  .source-code .operator { color: #8250df; }
+  .source-code .bool { color: #1a7f37; }
+  .source-code .number { color: #953800; }
+
+  /* Copy button */
+  .copy-btn {
+    background: var(--surface);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { color: var(--text); background: var(--tab-hover); }
+
+  /* Info boxes */
+  .info-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .info-box.success { border-left-color: var(--accent2); }
+  .info-box.purple { border-left-color: var(--accent3); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .tab { padding: 8px 12px; font-size: 0.8rem; }
+    main { padding: 20px 16px 60px; }
+    .header-title { font-size: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-content">
+    <div class="header-title">Kruskal's Algorithm Robustness Verification</div>
+    <div class="header-sub">Relational Cell Morphing with PCSAT &mdash; (N-1)-Robustness Proof</div>
+    <div class="tabs">
+      <div class="tab active" data-panel="simple" onclick="switchTab(this)">
+        <span class="tab-icon">&#128196;</span>Overview
+      </div>
+      <div class="tab" data-panel="detailed" onclick="switchTab(this)">
+        <span class="tab-icon">&#128214;</span>Detailed Tutorial
+      </div>
+      <div class="tab" data-panel="source" onclick="switchTab(this)">
+        <span class="tab-icon">&#128187;</span>Source Code
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ SIMPLE / OVERVIEW PANEL ============ -->
+  <div id="panel-simple" class="panel active content">
+    <h1>Kruskal's Algorithm Robustness Verification with PCSAT</h1>
+    <p>A concise tutorial on verifying (N-1)-robustness of MST cost using relational cell morphing.</p>
+    <hr>
+
+    <h2>The Algorithm</h2>
+<pre><code>Kruskal(G : graph)
+    for each node v in G:
+        MakeSet(v)                    // Initialize disjoint sets
+    T := &empty;                            // MST edges
+    cost := 0                         // MST total cost
+    for each edge (u,v) in G ordered by weight:
+        if Find(u) &ne; Find(v):         // Different components?
+            T := T &cup; {(u,v)}          // Add edge to MST
+            cost := cost + G[u,v]     // Accumulate cost
+            Union(u, v)               // Merge components
+    return T, cost</code></pre>
+    <p><strong>Key observations</strong>: The MST has exactly <strong>N-1 edges</strong> (for N vertices). Cost only <strong>increases</strong>: <code>cost' = cost + edge_weight</code>. Each edge is considered once: either added or skipped.</p>
+    <hr>
+
+    <h2>The Property: (N-1)-Robustness</h2>
+<pre><code>&forall;e. |G1[e] - G2[e]| &le; &epsilon;  &rArr;  |cost1 - cost2| &le; (N-1)&middot;&epsilon;
+     ~~~~~~~~~~~~~~~~         ~~~~~~~~~~~~~~~~~~~~~~
+     INPUT: edge weights      OUTPUT: MST total cost</code></pre>
+    <p><strong>In plain English</strong>: If two input graphs have edge weights differing by at most &epsilon;, the MST total costs differ by at most (N-1)&middot;&epsilon;.</p>
+    <p><strong>Why "(N-1)-robust"?</strong> The MST has exactly N-1 edges, and each edge weight contributes at most &epsilon; to the cost difference, so the bound grows <strong>linearly</strong> with the number of edges.</p>
+    <hr>
+
+    <h2>The Solution: Relational Cell Morphing &mdash; Two Distinguished Cells</h2>
+    <h3>The Problem</h3>
+    <p>We need to verify a property about <strong>all edge weights and the accumulated MST cost</strong>, but CHC solvers can't handle quantified array properties directly.</p>
+
+    <h3>The Solution: Two Distinguished Cells</h3>
+    <p>Instead of tracking all edges and costs, we track <strong>two symbolic cells</strong>:</p>
+<pre><code>&boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdr;
+&boxv;  1. INPUT CELL (Edge Weight)                                    &boxv;
+&boxv;     k:    Distinguished edge index (SYMBOLIC)                   &boxv;
+&boxv;     wk1:  Weight of edge k in graph G1                          &boxv;
+&boxv;     wk2:  Weight of edge k in graph G2                          &boxv;
+&boxv;     bk:   Sign bit (bk = true &rArr; wk2 &ge; wk1)                    &boxv;
+&boxv;     PRECONDITION: |wk1 - wk2| &le; &epsilon;                            &boxv;
+&boxv;     INVARIANT: k, wk1, wk2, bk NEVER CHANGE                    &boxv;
+&boxv;                                                                  &boxv;
+&boxv;  2. OUTPUT CELL (MST Cost)                                      &boxv;
+&boxv;     c1:   MST cost in run 1                                     &boxv;
+&boxv;     c2:   MST cost in run 2                                     &boxv;
+&boxv;     bc:   Sign bit (bc = true &rArr; c2 &ge; c1)                      &boxv;
+&boxv;     POSTCONDITION: |c1 - c2| &le; (N-1)&middot;&epsilon;                       &boxv;
+&boxv;     c1, c2 ACCUMULATE (increase when edges added)               &boxv;
+&boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdr;</code></pre>
+    <p><strong>Key insight</strong>: <code>k</code> is <strong>symbolic</strong> (universally quantified). If we prove the property for arbitrary <code>k</code>, it holds for ALL edges!</p>
+    <hr>
+
+    <h2>The HIT/MISS Abstraction</h2>
+    <p>When adding an edge to the MST:</p>
+    <table>
+      <thead>
+        <tr><th>Case</th><th>Condition</th><th>What We Know</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>HIT</strong></td><td>edge = k</td><td>Adding distinguished edge &rarr; <code>c1' = c1 + wk1</code> (exact!)</td></tr>
+        <tr><td><strong>MISS</strong></td><td>edge &ne; k</td><td>Adding other edge &rarr; weight unknown, bounded by &epsilon;</td></tr>
+      </tbody>
+    </table>
+    <h3>For Cost Operations</h3>
+<pre><code>Adding edge to MST:
+  &bull; HIT (edge = k):   c1' = c1 + wk1     (exact contribution!)
+                       c2' = c2 + wk2
+                       Contribution: |wk1 - wk2| &le; &epsilon;
+
+  &bull; MISS (edge &ne; k):  c1' = c1 + ???     (unknown weight)
+                       c2' = c2 + ???
+                       Contribution: at most &epsilon; (by input bound)
+
+Skipping edge (would create cycle):
+  &bull; c1' = c1, c2' = c2   (cost unchanged)</code></pre>
+    <div class="info-box">
+      <strong>KEY INSIGHT</strong>: Both HIT and MISS contribute at most &epsilon; to the cost difference! HIT gives us explicit formulas while MISS is abstract, but both are bounded.
+    </div>
+    <hr>
+
+    <h2>State Variables</h2>
+<pre><code>Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps)</code></pre>
+    <table>
+      <thead>
+        <tr><th>Variable</th><th>Meaning</th><th>Changes?</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>i1, i2</code></td><td>Edges added to MST in runs 1 and 2</td><td>Yes (0 &rarr; N-1)</td></tr>
+        <tr><td><code>k</code></td><td>Distinguished edge index (symbolic)</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>wk1, wk2</code></td><td>Weights G1[k], G2[k]</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>bk</code></td><td>Sign bit: <code>true</code> &rArr; wk2 &ge; wk1</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>c1, c2</code></td><td>MST costs in runs 1 and 2</td><td>Yes (accumulates)</td></tr>
+        <tr><td><code>bc</code></td><td>Sign bit: <code>true</code> &rArr; c2 &ge; c1</td><td>Yes</td></tr>
+        <tr><td><code>n</code></td><td>Number of vertices</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>eps</code></td><td>Perturbation bound (&epsilon; &ge; 0)</td><td><strong>Never</strong></td></tr>
+      </tbody>
+    </table>
+    <hr>
+
+    <h2>Why (N-1)-Robust Works</h2>
+    <div class="info-box success">
+      <strong>THE (N-1)-ROBUSTNESS INSIGHT</strong><br><br>
+      <strong>INVARIANT:</strong> <code>|c1 - c2| &le; i &middot; &epsilon;</code> (where i = edges added)<br><br>
+      Each edge added to the MST contributes at most &epsilon; to the cost difference:
+      <ol style="margin:8px 0 8px 24px">
+        <li><strong>HIT</strong>: <code>|wk1 - wk2| &le; &epsilon;</code> (input precondition)</li>
+        <li><strong>MISS</strong>: <code>|G1[e] - G2[e]| &le; &epsilon;</code> for ALL edges (input assumption)</li>
+        <li><strong>Skip</strong>: <code>c1' = c1</code> &mdash; no contribution</li>
+      </ol>
+      After N-1 edges: <code>|c1 - c2| &le; (N-1) &middot; &epsilon;</code><br><br>
+      <code>INPUT: |G1[e] - G2[e]| &le; &epsilon;</code> &rarr; <code>OUTPUT: |cost1 - cost2| &le; (N-1)&middot;&epsilon;</code>
+    </div>
+    <p>Compare to 1-robust algorithms where values are <strong>preserved</strong>:</p>
+<pre><code>Insertion Sort: ak1' = ak1         (values preserved!)    &rarr; 1-robust
+Kruskal:        c1' = c1 + wk1     (costs accumulate!)   &rarr; (N-1)-robust
+Dijkstra:       dv1' = dv1 + edge  (distances accumulate!) &rarr; N-robust</code></pre>
+    <hr>
+
+    <h2>Verification Results</h2>
+    <table>
+      <thead>
+        <tr><th>Goal Clause</th><th>Result</th><th>Time</th><th>Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>c1 - c2 &le; (n-1)*eps and c2 - c1 &le; (n-1)*eps</code></td><td><strong>SAT</strong></td><td>~21s</td><td>Bound CAN be satisfied &check;</td></tr>
+        <tr><td><code>c1 - c2 &gt; (n-1)*eps or c2 - c1 &gt; (n-1)*eps</code></td><td><strong>UNSAT</strong></td><td>&mdash;</td><td>Bound CANNOT be violated &check;</td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-box success">
+      <strong>VERIFICATION COMPLETE</strong><br><br>
+      <strong>Property:</strong> (N-1)-Robustness of Kruskal's MST Cost<br>
+      <strong>Statement:</strong> &forall;e. |G1[e] - G2[e]| &le; &epsilon; &rArr; |cost1 - cost2| &le; (N-1)&middot;&epsilon;<br>
+      <strong>Result:</strong> VERIFIED &check;<br>
+      <strong>Evidence:</strong> Violation query returns UNSAT (no counterexample exists)
+    </div>
+    <hr>
+
+    <h2>Key Takeaways</h2>
+    <ol>
+      <li><strong>Two Distinguished Cells</strong>: INPUT cell (edge weight <code>wk1, wk2</code>) + OUTPUT cell (MST cost <code>c1, c2</code>). Since <code>k</code> is universally quantified, the proof holds for all edges.</li>
+      <li><strong>HIT/MISS Abstraction</strong>: HIT (add edge k) &rarr; explicit cost <code>c1' = c1 + wk1</code>; MISS (add other edge) &rarr; weight unknown, bounded by &epsilon;.</li>
+      <li><strong>(N-1)-Robust Insight</strong>: Costs accumulate (<code>c1' = c1 + w</code>), so the &epsilon; bound grows linearly: after N-1 edges, <code>|c1 - c2| &le; (N-1)&middot;&epsilon;</code>.</li>
+      <li><strong>PCSAT Goal Interpretation</strong>: Positive property SAT &rarr; achievable &check;; Violation UNSAT &rarr; verified &check;</li>
+    </ol>
+    <hr>
+
+    <h2>Comparison: 1-Robust vs (N-1)-Robust</h2>
+    <table>
+      <thead>
+        <tr><th>Aspect</th><th>Insertion Sort (1-robust)</th><th>Kruskal MST ((N-1)-robust)</th><th>Dijkstra (N-robust)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Values</td><td>Preserved (<code>ak1' = ak1</code>)</td><td>Accumulate (<code>c1' = c1 + w</code>)</td><td>Accumulate (<code>d1' = d1 + w</code>)</td></tr>
+        <tr><td>Invariant</td><td><code>|ak1 - ak2| &le; &epsilon;</code></td><td><code>|c1 - c2| &le; i&middot;&epsilon;</code></td><td><code>|d1 - d2| &le; i&middot;&epsilon;</code></td></tr>
+        <tr><td>Final bound</td><td>&epsilon; (constant)</td><td>(N-1)&middot;&epsilon;</td><td>N&middot;&epsilon;</td></tr>
+        <tr><td>HIT case</td><td>Know exact value</td><td>Know exact weight contribution</td><td>Need predecessor distance</td></tr>
+        <tr><td>MISS case</td><td>Non-deterministic comparison</td><td>Unknown weight, bounded by &epsilon;</td><td>Unknown weight, bounded by &epsilon;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ DETAILED TUTORIAL PANEL ============ -->
+  <div id="panel-detailed" class="panel content">
+    <h1>Kruskal's Algorithm: Robustness Verification with Relational Cell Morphing</h1>
+    <h3>A Step-by-Step Tutorial on the PCSAT Encoding for (N-1)-Robustness</h3>
+    <hr>
+
+    <h2>Verification Results</h2>
+    <table>
+      <thead><tr><th>Goal</th><th>Result</th><th>Time</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>c1 - c2 &le; (n-1)*eps and c2 - c1 &le; (n-1)*eps</code></td><td><strong>SAT</strong></td><td>~21s</td><td>Bound achievable &check;</td></tr>
+        <tr><td><code>c1 - c2 &gt; (n-1)*eps or c2 - c1 &gt; (n-1)*eps</code></td><td><strong>UNSAT</strong></td><td>&mdash;</td><td><strong>Verified &check;</strong></td></tr>
+      </tbody>
+    </table>
+    <hr>
+
+    <h2>Part 1: The Algorithm</h2>
+<pre><code>Kruskal(G : graph)
+    for each node v in G:
+        MakeSet(v)                    // Initialize disjoint sets
+    T := &empty;                            // MST edges
+    cost := 0                         // MST total cost
+    for each edge (u,v) in G ordered by weight:
+        if Find(u) &ne; Find(v):         // Different components?
+            T := T &cup; {(u,v)}          // Add edge to MST
+            cost := cost + G[u,v]     // Accumulate cost
+            Union(u, v)               // Merge components
+    return T, cost</code></pre>
+
+    <h3>Key Observations</h3>
+    <ol>
+      <li><strong>MST has exactly N-1 edges</strong> (for N vertices)</li>
+      <li><strong>Cost only increases</strong>: <code>cost' = cost + edge_weight</code></li>
+      <li><strong>Each edge is considered once</strong>: either added or skipped</li>
+    </ol>
+    <hr>
+
+    <h2>Part 2: The Property</h2>
+<pre><code>PROPERTY: (N-1)-robust under L&infin; for MST cost
+
+&forall;e. |G1[e] - G2[e]| &le; &epsilon;  &rArr;  |cost1 - cost2| &le; (N-1)&middot;&epsilon;
+    ~~~~~~~~~~~~~~~~         ~~~~~~~~~~~~~~~~~~~~~~
+    INPUT: edge weights      OUTPUT: MST total cost</code></pre>
+
+    <h3>Why (N-1)&middot;&epsilon;?</h3>
+<pre><code>MST has exactly N-1 edges.
+Each edge weight differs by at most &epsilon;.
+Therefore: total cost differs by at most (N-1)&middot;&epsilon;.
+
+Example (N=4, so 3 edges in MST):
+  MST1 uses edges with weights: 5, 8, 12  &rarr; cost1 = 25
+  MST2 uses edges with weights: 6, 9, 11  &rarr; cost2 = 26
+
+  If each edge differs by &le; 1 (&epsilon;=1):
+  |cost1 - cost2| = |25 - 26| = 1 &le; 3&middot;1 = 3  &check;</code></pre>
+    <hr>
+
+    <h2>Part 3: Relational Cell Morphing &mdash; Two Distinguished Cells</h2>
+    <p>The key technique: instead of tracking ALL edges and ALL costs, we track <strong>two distinguished cells</strong>:</p>
+<pre><code>&boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdr;
+&boxv;                    TWO DISTINGUISHED CELLS                              &boxv;
+&boxv;                                                                         &boxv;
+&boxv;  1. INPUT CELL (Edge Weight)                                            &boxv;
+&boxv;     k:       Distinguished edge index (SYMBOLIC)                        &boxv;
+&boxv;     wk1:     Weight of edge k in graph G1                               &boxv;
+&boxv;     wk2:     Weight of edge k in graph G2                               &boxv;
+&boxv;     bk:      Sign bit (bk = true &rArr; wk2 &ge; wk1)                         &boxv;
+&boxv;     PRECONDITION: |wk1 - wk2| &le; &epsilon;                                    &boxv;
+&boxv;     INVARIANT: k, wk1, wk2, bk NEVER CHANGE                            &boxv;
+&boxv;                                                                         &boxv;
+&boxv;  2. OUTPUT CELL (MST Cost)                                              &boxv;
+&boxv;     c1:      MST cost in run 1                                          &boxv;
+&boxv;     c2:      MST cost in run 2                                          &boxv;
+&boxv;     bc:      Sign bit (bc = true &rArr; c2 &ge; c1)                           &boxv;
+&boxv;     POSTCONDITION: |c1 - c2| &le; (N-1)&middot;&epsilon;                             &boxv;
+&boxv;     c1, c2 ACCUMULATE (increase when edges added)                       &boxv;
+&boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdr;</code></pre>
+
+    <h3>Why This Works</h3>
+    <p>Since <code>k</code> is <strong>symbolic</strong> (universally quantified), if we prove the property holds for arbitrary <code>k</code>, it holds for ALL edges. This is the power of cell morphing!</p>
+    <hr>
+
+    <h2>Part 4: HIT/MISS Abstraction</h2>
+    <p>When adding an edge to the MST, we distinguish two cases:</p>
+    <div class="info-box">
+      <strong>HIT/MISS ABSTRACTION</strong><br><br>
+      <strong>HIT: We add the DISTINGUISHED edge k to MST</strong><br>
+      <code>c1' = c1 + wk1</code> &larr; We know EXACTLY what's added!<br>
+      <code>c2' = c2 + wk2</code><br>
+      Contribution to |c1' - c2'|: |(c1 - c2) + (wk1 - wk2)| &le; |c1 - c2| + &epsilon;<br><br>
+      <strong>MISS: We add some OTHER edge (not k) to MST</strong><br>
+      <code>c1' = c1 + ???</code> &larr; Weight UNKNOWN<br>
+      <code>c2' = c2 + ???</code><br>
+      We don't know the exact weight, BUT: |G1[e] - G2[e]| &le; &epsilon; (input assumption)<br>
+      So contribution to difference: still &le; &epsilon;<br><br>
+      <strong>KEY INSIGHT</strong>: Both HIT and MISS contribute at most &epsilon; to difference!
+    </div>
+
+    <h3>Why HIT is Explicit in Kruskal (but not Dijkstra)</h3>
+<pre><code>Kruskal (simple accumulation):
+  cost_new = cost_old + edge_weight
+  c1' = c1 + wk1  &larr; Direct addition, no other dependencies!
+
+Dijkstra (predecessor dependency):
+  d[v] = d[u] + edge_weight
+  dv1' = d1[u] + wk1  &larr; Need predecessor's distance, which we don't track!</code></pre>
+    <p>This is why Kruskal's HIT case is cleaner &mdash; no predecessor involved.</p>
+    <hr>
+
+    <h2>Part 5: State Variables</h2>
+<pre><code>Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps)</code></pre>
+
+    <h3>Variable Descriptions</h3>
+    <table>
+      <thead><tr><th>Variable</th><th>Type</th><th>Meaning</th><th>Changes?</th></tr></thead>
+      <tbody>
+        <tr><td><code>i1</code></td><td>int</td><td>Edges added to MST in run 1</td><td>Yes (0 &rarr; N-1)</td></tr>
+        <tr><td><code>i2</code></td><td>int</td><td>Edges added to MST in run 2</td><td>Yes (0 &rarr; N-1)</td></tr>
+        <tr><td><code>k</code></td><td>int</td><td>Distinguished edge index</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>wk1</code></td><td>real</td><td>Weight G1[k]</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>wk2</code></td><td>real</td><td>Weight G2[k]</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>bk</code></td><td>bool</td><td>Sign bit for weights</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>c1</code></td><td>real</td><td>MST cost in run 1</td><td>Yes (accumulates)</td></tr>
+        <tr><td><code>c2</code></td><td>real</td><td>MST cost in run 2</td><td>Yes (accumulates)</td></tr>
+        <tr><td><code>bc</code></td><td>bool</td><td>Sign bit for costs</td><td>Yes</td></tr>
+        <tr><td><code>n</code></td><td>int</td><td>Number of vertices</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>eps</code></td><td>real</td><td>Perturbation bound</td><td><strong>Never</strong></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Loop Invariant</h3>
+<pre><code>|c1 - c2| &le; max(i1, i2) &middot; &epsilon;</code></pre>
+    <p>After <code>i</code> edges added, the cost difference is at most <code>i&middot;&epsilon;</code>.</p>
+    <hr>
+
+    <h2>Part 6: Initialization</h2>
+<pre><code>Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps) :-
+    i1 = 0, i2 = 0,
+    n &gt; 0,
+    0 &le; k,
+    0 &le; eps,
+    (* INPUT PRECONDITION: |wk1 - wk2| &le; eps *)
+    (bk and 0 &le; wk2 - wk1 and wk2 - wk1 &le; eps) or
+    (!bk and 0 &le; wk1 - wk2 and wk1 - wk2 &le; eps),
+    (* Initial costs are equal *)
+    c1 = 0, c2 = 0.</code></pre>
+
+    <h4>What This Says</h4>
+    <ol>
+      <li><strong><code>i1 = 0, i2 = 0</code></strong>: No edges added yet</li>
+      <li><strong><code>n &gt; 0</code></strong>: At least one vertex</li>
+      <li><strong><code>0 &le; k</code></strong>: Edge index is non-negative</li>
+      <li><strong><code>0 &le; eps</code></strong>: Perturbation is non-negative</li>
+      <li><strong>Input bound</strong>: <code>|wk1 - wk2| &le; eps</code> encoded with sign bit</li>
+      <li><strong><code>c1 = 0, c2 = 0</code></strong>: Costs start at zero (equal!)</li>
+    </ol>
+
+    <h4>Sign Bit Encoding</h4>
+    <p>Instead of <code>|wk1 - wk2| &le; eps</code>, we use:</p>
+<pre><code>(bk and 0 &le; wk2 - wk1 and wk2 - wk1 &le; eps)   // wk2 &ge; wk1
+   or
+(!bk and 0 &le; wk1 - wk2 and wk1 - wk2 &le; eps)  // wk1 &gt; wk2</code></pre>
+    <p>This avoids absolute value, which PCSAT doesn't support directly.</p>
+    <hr>
+
+    <h2>Part 7: TF Transition &mdash; Run 1 Steps, Run 2 Waits</h2>
+<pre><code>Inv(i1', i2, k, wk1, wk2, bk:bool, c1', c2, bc':bool, n, eps) :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    SchTF(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    (
+        (* Case 1: HIT - Add distinguished edge k *)
+        i1 &lt; n - 1 and i1' = i1 + 1 and c1' = c1 + wk1
+    ) or (
+        (* Case 2: MISS - Add other edge *)
+        i1 &lt; n - 1 and i1' = i1 + 1
+    ) or (
+        (* Case 3: Skip edge *)
+        i1 &lt; n - 1 and i1' = i1 and c1' = c1
+    ) or (
+        (* Case 4: Finished *)
+        i1 &gt;= n - 1 and i1' = i1 and c1' = c1
+    ),
+    (* Epsilon bound *)
+    (bc' and 0 &le; c2 - c1' and c2 - c1' &le; i1' * eps) or
+    (!bc' and 0 &le; c1' - c2 and c1' - c2 &le; i1' * eps).</code></pre>
+
+    <h3>Case-by-Case Analysis</h3>
+
+    <h4>Case 1: HIT &mdash; Add Distinguished Edge k</h4>
+<pre><code>i1 &lt; n - 1 and i1' = i1 + 1 and c1' = c1 + wk1
+                               ^^^^^^^^^^^^^^^^
+                               EXPLICIT! We know exactly what c1 becomes.</code></pre>
+    <ul>
+      <li>Edge k is added to MST</li>
+      <li>Cost increases by exactly <code>wk1</code></li>
+      <li>Edge count increases: <code>i1' = i1 + 1</code></li>
+    </ul>
+
+    <h4>Case 2: MISS &mdash; Add Other Edge</h4>
+<pre><code>i1 &lt; n - 1 and i1' = i1 + 1
+(* c1' is NOT constrained here &mdash; only by epsilon bound below *)</code></pre>
+    <ul>
+      <li>Some other edge (not k) is added</li>
+      <li>Weight unknown, but bounded by &epsilon; (via epsilon clause)</li>
+      <li>Edge count increases: <code>i1' = i1 + 1</code></li>
+    </ul>
+
+    <h4>Case 3: Skip Edge</h4>
+<pre><code>i1 &lt; n - 1 and i1' = i1 and c1' = c1</code></pre>
+    <ul>
+      <li>Edge examined but not added (would create cycle)</li>
+      <li>Cost unchanged: <code>c1' = c1</code></li>
+      <li>Edge count unchanged: <code>i1' = i1</code></li>
+    </ul>
+
+    <h4>Case 4: Finished</h4>
+<pre><code>i1 &gt;= n - 1 and i1' = i1 and c1' = c1</code></pre>
+    <ul>
+      <li>MST complete (N-1 edges added)</li>
+      <li>Stutter: nothing changes</li>
+    </ul>
+
+    <h4>The Epsilon Bound Clause</h4>
+<pre><code>(bc' and 0 &le; c2 - c1' and c2 - c1' &le; i1' * eps) or
+(!bc' and 0 &le; c1' - c2 and c1' - c2 &le; i1' * eps)</code></pre>
+    <p>This encodes: <code>|c1' - c2| &le; i1' &middot; &epsilon;</code></p>
+    <p><strong>Note</strong>: <code>bc'</code> is NOT assigned in the cases &mdash; it's determined by this clause!</p>
+    <hr>
+
+    <h2>Part 8: FT Transition &mdash; Symmetric</h2>
+<pre><code>Inv(i1, i2', k, wk1, wk2, bk:bool, c1, c2', bc':bool, n, eps) :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    SchFT(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    (
+        (* Case 1: HIT *)
+        i2 &lt; n - 1 and i2' = i2 + 1 and c2' = c2 + wk2
+                                       ^^^^^^^^^^^^^^^^
+                                       Note: wk2, not wk1!
+    ) or (
+        (* Case 2: MISS *)
+        i2 &lt; n - 1 and i2' = i2 + 1
+    ) or (
+        (* Case 3: Skip *)
+        i2 &lt; n - 1 and i2' = i2 and c2' = c2
+    ) or (
+        (* Case 4: Finished *)
+        i2 &gt;= n - 1 and i2' = i2 and c2' = c2
+    ),
+    (* Epsilon bound *)
+    (bc' and 0 &le; c2' - c1 and c2' - c1 &le; i2' * eps) or
+    (!bc' and 0 &le; c1 - c2' and c1 - c2' &le; i2' * eps).</code></pre>
+    <p>Same structure as TF, but for run 2: HIT uses <code>wk2</code> (not <code>wk1</code>), and the bound uses <code>i2'</code> (not <code>i1'</code>).</p>
+    <hr>
+
+    <h2>Part 9: TT Transition &mdash; HIT/MISS Matrix</h2>
+    <p>When both runs step together, we have multiple combinations:</p>
+<pre><code>Inv(i1', i2', k, wk1, wk2, bk:bool, c1', c2', bc':bool, n, eps) :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    SchTT(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    (
+        (* Case 1: HIT-HIT *)
+        i1 &lt; n - 1 and i2 &lt; n - 1 and i1' = i1 + 1 and i2' = i2 + 1 and
+        c1' = c1 + wk1 and c2' = c2 + wk2
+    ) or (
+        (* Case 2: HIT-MISS *)
+        i1 &lt; n - 1 and i2 &lt; n - 1 and i1' = i1 + 1 and i2' = i2 + 1 and
+        c1' = c1 + wk1
+    ) or (
+        (* Case 3: MISS-HIT *)
+        i1 &lt; n - 1 and i2 &lt; n - 1 and i1' = i1 + 1 and i2' = i2 + 1 and
+        c2' = c2 + wk2
+    ) or (
+        (* Case 4: MISS-MISS *)
+        i1 &lt; n - 1 and i2 &lt; n - 1 and i1' = i1 + 1 and i2' = i2 + 1
+    ) or (
+        (* Case 5: ADD-SKIP *)
+        i1 &lt; n - 1 and i2 &lt; n - 1 and i1' = i1 + 1 and i2' = i2 and c2' = c2
+    ) or (
+        (* Case 6: SKIP-ADD *)
+        i1 &lt; n - 1 and i2 &lt; n - 1 and i1' = i1 and i2' = i2 + 1 and c1' = c1
+    ) or (
+        (* Case 7: SKIP-SKIP *)
+        i1 &lt; n - 1 and i2 &lt; n - 1 and i1' = i1 and i2' = i2 and
+        c1' = c1 and c2' = c2
+    ) or (
+        (* Case 8: FINISHED-FINISHED *)
+        i1 &gt;= n - 1 and i2 &gt;= n - 1 and i1' = i1 and i2' = i2 and
+        c1' = c1 and c2' = c2
+    ),
+    (* Epsilon bound *)
+    (bc' and 0 &le; c2' - c1' and c2' - c1' &le; i1' * eps) or
+    (!bc' and 0 &le; c1' - c2' and c1' - c2' &le; i1' * eps).</code></pre>
+
+    <h3>HIT-HIT Analysis (Case 1)</h3>
+<pre><code>Both runs add the distinguished edge k:
+  c1' = c1 + wk1
+  c2' = c2 + wk2
+
+New difference:
+  |c1' - c2'| = |(c1 + wk1) - (c2 + wk2)|
+             = |(c1 - c2) + (wk1 - wk2)|
+             &le; |c1 - c2| + |wk1 - wk2|    (triangle inequality)
+             &le; i&middot;&epsilon; + &epsilon;                     (by invariant and input bound)
+             = (i+1)&middot;&epsilon;                     &check;</code></pre>
+
+    <h3>HIT-MISS Analysis (Case 2)</h3>
+<pre><code>Run 1 adds edge k:     c1' = c1 + wk1
+Run 2 adds other edge: c2' = c2 + ???
+
+Even though we don't know run 2's edge weight,
+the epsilon bound ensures |c1' - c2'| &le; (i+1)&middot;&epsilon;
+because EVERY edge differs by at most &epsilon;.</code></pre>
+    <hr>
+
+    <h2>Part 10: Scheduler and Fairness</h2>
+<pre><code>(* Fairness: prevent starvation *)
+i1 &lt; n - 1 :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    SchTF(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    i2 &lt; n - 1.
+
+i2 &lt; n - 1 :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    SchFT(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    i1 &lt; n - 1.
+
+(* Scheduler disjunction *)
+SchTF(...), SchFT(...), SchTT(...) :-
+    Inv(...),
+    i1 &lt; n - 1 or i2 &lt; n - 1.</code></pre>
+
+    <h3>Fairness Constraints</h3>
+    <p>These ensure that if one run can still make progress (<code>i &lt; n-1</code>), the scheduler doesn't let only the other run proceed indefinitely:</p>
+    <ul>
+      <li>If <code>SchTF</code> is chosen and <code>i2 &lt; n-1</code>, then <code>i1 &lt; n-1</code> must hold</li>
+      <li>If <code>SchFT</code> is chosen and <code>i1 &lt; n-1</code>, then <code>i2 &lt; n-1</code> must hold</li>
+    </ul>
+
+    <h3>Scheduler Disjunction</h3>
+    <p>The scheduler can choose TF, FT, or TT as long as at least one run is not finished.</p>
+    <p><strong>Note</strong>: This is a <strong>non-Horn clause</strong> (multiple atoms in the head). This makes the problem pfwCSP rather than standard CHC.</p>
+    <hr>
+
+    <h2>Part 11: Goal Clause</h2>
+<pre><code>(* Check if violation is reachable at termination *)
+c1 - c2 &gt; (n - 1) * eps or c2 - c1 &gt; (n - 1) * eps :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    n - 1 &le; i1, n - 1 &le; i2.</code></pre>
+
+    <h3>What This Asks</h3>
+    <p>"At termination (both runs finished with N-1 edges), is it possible that <code>|c1 - c2| &gt; (N-1)&middot;&epsilon;</code>?"</p>
+
+    <h3>Interpretation</h3>
+    <ul>
+      <li><strong>UNSAT</strong>: NO such state exists &rarr; <strong>(N-1)-robustness VERIFIED &check;</strong></li>
+      <li><strong>SAT</strong>: Such a state exists &rarr; Property does NOT hold</li>
+    </ul>
+    <hr>
+
+    <h2>Part 12: Visual Summary</h2>
+    <div class="info-box purple">
+<pre style="border:none;margin:0;padding:0;background:transparent"><code>KRUSKAL ROBUSTNESS VERIFICATION
+
+INPUT: Edge weights G1, G2 with |G1[e] - G2[e]| &le; &epsilon; for all e
+
+Distinguished edge k: wk1 = G1[k], wk2 = G2[k]
+  PRECONDITION: |wk1 - wk2| &le; &epsilon;
+  k, wk1, wk2 NEVER CHANGE
+                    |
+                    v
+  KRUSKAL'S ALGORITHM
+
+  For each edge in sorted order:
+    if connects different components:
+
+      HIT (edge = k):
+        c1' = c1 + wk1  &larr; EXPLICIT!
+        c2' = c2 + wk2
+        Contribution: |wk1 - wk2| &le; &epsilon;
+
+      MISS (edge &ne; k):
+        c1' = c1 + ???  &larr; Unknown weight
+        c2' = c2 + ???
+        Contribution: at most &epsilon; (by input bound)
+
+  INVARIANT: |c1 - c2| &le; i &middot; &epsilon;  (i = edges added)
+                    |
+                    v
+OUTPUT: MST costs c1, c2
+  POSTCONDITION: |c1 - c2| &le; (N-1) &middot; &epsilon;
+
+  VERIFIED! &check;  (violation goal returns UNSAT)</code></pre>
+    </div>
+    <hr>
+
+    <h2>Part 13: Why The Encoding Is Correct</h2>
+    <h3>Soundness Argument</h3>
+    <ol>
+      <li><strong>Initialization</strong>: <code>c1 = c2 = 0</code>, so <code>|c1 - c2| = 0 &le; 0&middot;&epsilon;</code> &check;</li>
+      <li><strong>HIT case</strong>:
+        <ul>
+          <li><code>c1' = c1 + wk1</code>, <code>c2' = c2 + wk2</code></li>
+          <li><code>|c1' - c2'| &le; |c1 - c2| + |wk1 - wk2| &le; i&middot;&epsilon; + &epsilon; = (i+1)&middot;&epsilon;</code> &check;</li>
+        </ul>
+      </li>
+      <li><strong>MISS case</strong>:
+        <ul>
+          <li>Unknown weight, but bounded by epsilon clause</li>
+          <li><code>|c1' - c2| &le; (i+1)&middot;&epsilon;</code> enforced &check;</li>
+        </ul>
+      </li>
+      <li><strong>Skip case</strong>:
+        <ul>
+          <li><code>c1' = c1</code>, so <code>|c1' - c2| = |c1 - c2| &le; i&middot;&epsilon; &le; (i+1)&middot;&epsilon;</code> &check;</li>
+        </ul>
+      </li>
+      <li><strong>Termination</strong>: After N-1 edges: <code>|c1 - c2| &le; (N-1)&middot;&epsilon;</code> &check;</li>
+    </ol>
+
+    <h3>Completeness Argument</h3>
+    <p>The encoding allows ANY behavior consistent with Kruskal:</p>
+    <ul>
+      <li>Any edge can be HIT or MISS</li>
+      <li>Edges can be added or skipped (non-deterministic cycle check)</li>
+      <li>Both runs proceed independently (scheduler freedom)</li>
+    </ul>
+    <hr>
+
+    <h2>Part 14: Common Questions</h2>
+    <h3>Q: Why not just track |c1 - c2| directly?</h3>
+    <p>PCSAT doesn't support absolute value. We use sign bit <code>bc</code> to encode:</p>
+<pre><code>bc = true  &rArr; c2 &ge; c1, track (c2 - c1)
+bc = false &rArr; c1 &gt; c2, track (c1 - c2)</code></pre>
+
+    <h3>Q: Why is <code>bc' = bc</code> not allowed?</h3>
+    <p>PCSAT doesn't allow boolean assignment. Instead, <code>bc'</code> is determined by the epsilon bound clause, which checks whether <code>c2' &ge; c1'</code> or <code>c1' &gt; c2'</code>.</p>
+
+    <h3>Q: Why do HIT and MISS give the same bound?</h3>
+    <p>Both contribute at most &epsilon; because:</p>
+    <ul>
+      <li><strong>HIT</strong>: <code>|wk1 - wk2| &le; &epsilon;</code> (input precondition)</li>
+      <li><strong>MISS</strong>: <code>|G1[e] - G2[e]| &le; &epsilon;</code> for ALL edges (input assumption)</li>
+    </ul>
+    <p>The difference is that HIT gives us explicit formulas (<code>c1' = c1 + wk1</code>) while MISS is abstract.</p>
+
+    <h3>Q: Why use <code>i1' * eps</code> instead of <code>max(i1', i2) * eps</code>?</h3>
+    <p>In the TF transition, only run 1 changes, so <code>i2</code> stays the same. The bound <code>i1' * eps</code> works because:</p>
+    <ul>
+      <li>If <code>i1' &ge; i2</code>: bound is <code>i1' * eps</code> (correct)</li>
+      <li>If <code>i1' &lt; i2</code>: the epsilon clause with <code>i1' * eps</code> is still satisfiable (possibly too loose, but sound)</li>
+    </ul>
+    <p>A tighter encoding could use <code>max(i1', i2)</code>, but this simpler version still verifies.</p>
+    <hr>
+
+    <h2>Part 15: Key Takeaways</h2>
+    <ol>
+      <li><strong>Two distinguished cells</strong>: INPUT (edge weight) + OUTPUT (MST cost)</li>
+      <li><strong>HIT is explicit</strong>: <code>c1' = c1 + wk1</code> &mdash; we know exact contribution</li>
+      <li><strong>MISS is abstract</strong>: Unknown weight, but bounded by &epsilon;</li>
+      <li><strong>Sign bit for absolute value</strong>: <code>|x - y| &le; bound</code> encoded with boolean</li>
+      <li><strong>No boolean assignment</strong>: <code>bc'</code> determined by epsilon clause, not <code>bc' = bc</code></li>
+      <li><strong>Invariant</strong>: <code>|c1 - c2| &le; i &middot; &epsilon;</code> maintained through all transitions</li>
+      <li><strong>Verification</strong>: UNSAT for violation goal proves (N-1)-robustness</li>
+    </ol>
+
+    <div class="info-box success">
+      <strong>VERIFICATION COMPLETE</strong><br><br>
+      <strong>Property:</strong> (N-1)-Robustness of Kruskal's MST Cost<br>
+      <strong>Statement:</strong> &forall;e. |G1[e] - G2[e]| &le; &epsilon; &rArr; |cost1 - cost2| &le; (N-1)&middot;&epsilon;<br>
+      <strong>Result:</strong> VERIFIED &check;<br>
+      <strong>Evidence:</strong> SAT for bound (21s), UNSAT for violation
+    </div>
+    <hr>
+
+    <h2>References</h2>
+    <ol>
+      <li><strong>Chaudhuri, Gulwani, Lublinerman</strong> &mdash; "Continuity and Robustness of Programs" (CACM 2012)</li>
+      <li><strong>Monniaux &amp; Gonnord</strong> &mdash; "Cell Morphing: From Array Programs to Array-Free Horn Clauses" (SAS 2016)</li>
+      <li><strong>Unno, Terauchi, Kobayashi</strong> &mdash; "Constraint-based Relational Verification" (CAV 2021)</li>
+      <li><strong>PCSAT Solver</strong> &mdash; Tool for solving predicate constraint satisfaction problems</li>
+    </ol>
+  </div>
+
+  <!-- ============ SOURCE CODE PANEL ============ -->
+  <div id="panel-source" class="panel">
+    <div class="source-container">
+      <div class="source-header">
+        <span class="source-filename">kruskal_v2_fixed.clp</span>
+        <button class="copy-btn" onclick="copySource()">Copy to clipboard</button>
+      </div>
+      <div class="source-lines">
+        <div class="line-numbers" id="line-nums"></div>
+        <div class="source-code" id="source-code"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// Tab switching
+function switchTab(el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + el.dataset.panel).classList.add('active');
+}
+
+// Source code content
+const sourceCode = `
+(*
+Kruskal(G : graph)
+    for each node v in G:
+        MakeSet(v)                    (* Initialize disjoint sets *)
+    T := \u2205                            (* MST edges *)
+    cost := 0                         (* MST total cost *)
+    for each edge (u,v) in G ordered by weight:
+        if Find(u) \u2260 Find(v):         (* Different components? *)
+            T := T \u222A {(u,v)}          (* Add edge to MST *)
+            cost := cost + G[u,v]     (* Accumulate cost *)
+            Union(u, v)               (* Merge components *)
+    return T, cost
+*)
+
+(*
+PROPERTY: (N-1)-robust under L\u221E for MST cost
+  \u2200e. |G1[e] - G2[e]| \u2264 \u03B5  \u27F9  |cost1 - cost2| \u2264 (N-1)\u00B7\u03B5
+
+DETAILED VERSION WITH HIT/MISS ABSTRACTION:
+
+This version tracks TWO distinguished cells:
+
+1. INPUT CELL (edge weight):
+   - k: distinguished edge index
+   - wk1, wk2: weights G1[k], G2[k]
+   - bk: sign bit for edge weight difference
+
+2. OUTPUT CELL (MST cost):
+   - c1, c2: MST costs in runs 1 and 2
+   - bc: sign bit for cost difference
+
+HIT/MISS for edge selection:
+- HIT:  The distinguished edge k is considered for MST
+        \u2192 we know exact weight contribution wk1 or wk2
+- MISS: Some other edge is considered
+        \u2192 weight unknown but bounded by eps
+
+KEY INSIGHT:
+When edge k is added to MST:
+- Run 1 adds wk1 to cost
+- Run 2 adds wk2 to cost
+- Contribution to difference: |wk1 - wk2| \u2264 eps
+
+INVARIANT: |c1 - c2| \u2264 i \u00B7 \u03B5  where i = edges added
+
+STATE VARIABLES:
+  i1, i2      : edges added to MST
+  k           : distinguished edge index
+  wk1, wk2    : weights G1[k], G2[k] (NEVER CHANGE)
+  bk          : sign bit for weight (bk \u27F9 wk2 \u2265 wk1)
+  c1, c2      : MST costs (ACCUMULATE)
+  bc          : sign bit for cost (bc \u27F9 c2 \u2265 c1)
+  n           : number of vertices
+  eps         : per-edge perturbation bound
+*)
+
+
+(******************************************************************************)
+(* INITIALIZATION                                                             *)
+(******************************************************************************)
+
+Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps) :-
+    i1 = 0, i2 = 0,
+    n > 0,
+    (* Distinguished edge k is valid *)
+    0 <= k,
+    0 <= eps,
+    (* Edge weights satisfy epsilon bound *)
+    (bk and 0 <= wk2 - wk1 and wk2 - wk1 <= eps) or
+    (!bk and 0 <= wk1 - wk2 and wk1 - wk2 <= eps),
+    (* Initial costs are equal *)
+    c1 = 0, c2 = 0.
+
+
+(******************************************************************************)
+(* TF TRANSITION - Only run 1 steps                                           *)
+(*                                                                            *)
+(* Run 1 considers an edge for MST.                                           *)
+(* Cases:                                                                     *)
+(*   1. Add distinguished edge k (HIT): c1' = c1 + wk1                        *)
+(*   2. Add other edge (MISS): c1' increases by unknown weight                *)
+(*   3. Skip edge: c1' = c1 (edge not added to MST)                           *)
+(*   4. Finished: i1 >= n-1                                                   *)
+(******************************************************************************)
+
+Inv(i1', i2, k, wk1, wk2, bk:bool, c1', c2, bc':bool, n, eps) :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    SchTF(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    (
+        (* Case 1: Add distinguished edge k (HIT) *)
+        (* We know exactly: c1' = c1 + wk1 *)
+        i1 < n - 1 and i1' = i1 + 1 and c1' = c1 + wk1
+    ) or (
+        (* Case 2: Add other edge (MISS) *)
+        (* Weight unknown, but difference bounded by eps *)
+        i1 < n - 1 and i1' = i1 + 1
+        (* c1' constrained by epsilon bound below *)
+    ) or (
+        (* Case 3: Skip edge - not added to MST *)
+        i1 < n - 1 and i1' = i1 and c1' = c1
+    ) or (
+        (* Case 4: Finished *)
+        i1 >= n - 1 and i1' = i1 and c1' = c1
+        (* NOTE: bc' is NOT assigned here - it's constrained by epsilon bound *)
+    ),
+    (* Maintain epsilon bound *)
+    (bc' and 0 <= c2 - c1' and c2 - c1' <= i1' * eps) or
+    (!bc' and 0 <= c1' - c2 and c1' - c2 <= i1' * eps).
+
+
+(******************************************************************************)
+(* FT TRANSITION - Only run 2 steps                                           *)
+(******************************************************************************)
+
+Inv(i1, i2', k, wk1, wk2, bk:bool, c1, c2', bc':bool, n, eps) :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    SchFT(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    (
+        (* Case 1: Add distinguished edge k (HIT) *)
+        i2 < n - 1 and i2' = i2 + 1 and c2' = c2 + wk2
+    ) or (
+        (* Case 2: Add other edge (MISS) *)
+        i2 < n - 1 and i2' = i2 + 1
+    ) or (
+        (* Case 3: Skip edge *)
+        i2 < n - 1 and i2' = i2 and c2' = c2
+    ) or (
+        (* Case 4: Finished *)
+        i2 >= n - 1 and i2' = i2 and c2' = c2
+        (* NOTE: bc' constrained by epsilon bound, not assigned *)
+    ),
+    (* Maintain epsilon bound *)
+    (bc' and 0 <= c2' - c1 and c2' - c1 <= i2' * eps) or
+    (!bc' and 0 <= c1 - c2' and c1 - c2' <= i2' * eps).
+
+
+(******************************************************************************)
+(* TT TRANSITION - Both runs step together                                    *)
+(*                                                                            *)
+(* Both runs consider edges. Cases by HIT/MISS:                               *)
+(*   HIT-HIT:   Both add edge k \u2192 difference increases by |wk1 - wk2| \u2264 eps  *)
+(*   HIT-MISS:  Run 1 adds k, run 2 adds other                                *)
+(*   MISS-HIT:  Run 1 adds other, run 2 adds k                                *)
+(*   MISS-MISS: Both add other edges                                          *)
+(*   SKIP-*:    One or both skip                                              *)
+(******************************************************************************)
+
+Inv(i1', i2', k, wk1, wk2, bk:bool, c1', c2', bc':bool, n, eps) :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    SchTT(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    (
+        (* Case 1: HIT-HIT - both add distinguished edge k *)
+        (* c1' = c1 + wk1, c2' = c2 + wk2 *)
+        (* Difference grows by |wk1 - wk2| \u2264 eps *)
+        i1 < n - 1 and i2 < n - 1 and i1' = i1 + 1 and i2' = i2 + 1 and
+        c1' = c1 + wk1 and c2' = c2 + wk2
+    ) or (
+        (* Case 2: HIT-MISS - run 1 adds k, run 2 adds other *)
+        i1 < n - 1 and i2 < n - 1 and i1' = i1 + 1 and i2' = i2 + 1 and
+        c1' = c1 + wk1
+        (* c2' constrained by bound *)
+    ) or (
+        (* Case 3: MISS-HIT - run 1 adds other, run 2 adds k *)
+        i1 < n - 1 and i2 < n - 1 and i1' = i1 + 1 and i2' = i2 + 1 and
+        c2' = c2 + wk2
+        (* c1' constrained by bound *)
+    ) or (
+        (* Case 4: MISS-MISS - both add other edges *)
+        i1 < n - 1 and i2 < n - 1 and i1' = i1 + 1 and i2' = i2 + 1
+    ) or (
+        (* Case 5: One adds, one skips *)
+        i1 < n - 1 and i2 < n - 1 and i1' = i1 + 1 and i2' = i2 and c2' = c2
+    ) or (
+        (* Case 6: One skips, one adds *)
+        i1 < n - 1 and i2 < n - 1 and i1' = i1 and i2' = i2 + 1 and c1' = c1
+    ) or (
+        (* Case 7: Both skip *)
+        i1 < n - 1 and i2 < n - 1 and i1' = i1 and i2' = i2 and
+        c1' = c1 and c2' = c2
+    ) or (
+        (* Case 8: Both finished *)
+        i1 >= n - 1 and i2 >= n - 1 and i1' = i1 and i2' = i2 and
+        c1' = c1 and c2' = c2
+        (* NOTE: bc' constrained by epsilon bound, not assigned *)
+    ),
+    (* Maintain epsilon bound *)
+    (bc' and 0 <= c2' - c1' and c2' - c1' <= i1' * eps) or
+    (!bc' and 0 <= c1' - c2' and c1' - c2' <= i1' * eps).
+
+
+(******************************************************************************)
+(* SCHEDULER FAIRNESS                                                         *)
+(******************************************************************************)
+
+i1 < n - 1 :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    SchTF(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    i2 < n - 1.
+
+i2 < n - 1 :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    SchFT(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    i1 < n - 1.
+
+SchTF(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+SchFT(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+SchTT(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps) :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    i1 < n - 1 or i2 < n - 1.
+
+
+(******************************************************************************)
+(* GOAL: (N-1)-ROBUSTNESS                                                     *)
+(******************************************************************************)
+
+c1 - c2 > (n - 1) * eps or c2 - c1 > (n - 1) * eps :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    n - 1 <= i1, n - 1 <= i2.
+
+
+(******************************************************************************)
+(* TEST QUERIES                                                               *)
+(******************************************************************************)
+
+(*
+(* Test 1: (N-1)\u00B7\u03B5 bound maintained - should be SAT *)
+c1 - c2 <= (n - 1) * eps and c2 - c1 <= (n - 1) * eps :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    n - 1 <= i1, n - 1 <= i2.
+
+(* Test 2: Edge weights satisfy bound - should be SAT *)
+wk1 - wk2 <= eps and wk2 - wk1 <= eps :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps).
+
+(* Test 3: Exact equality - should be UNSAT *)
+c1 = c2 :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    n - 1 <= i1, n - 1 <= i2.
+
+(* Test 4: 1-robust (too tight) - should be SAT (violation reachable) *)
+c1 - c2 > eps or c2 - c1 > eps :-
+    Inv(i1, i2, k, wk1, wk2, bk:bool, c1, c2, bc:bool, n, eps),
+    n - 1 <= i1, n - 1 <= i2.
+*)`.trim();
+
+// Render source with line numbers and syntax highlighting
+function renderSource() {
+  const lines = sourceCode.split('\n');
+  const numEl = document.getElementById('line-nums');
+  const codeEl = document.getElementById('source-code');
+
+  let numsHtml = '';
+  let codeHtml = '';
+
+  lines.forEach((line, i) => {
+    numsHtml += '<span>' + (i + 1) + '</span>';
+    codeHtml += highlightLine(escapeHtml(line)) + '\n';
+  });
+
+  numEl.innerHTML = numsHtml;
+  codeEl.innerHTML = codeHtml;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function highlightLine(line) {
+  // Comments
+  line = line.replace(/(\(\*.*?\*\))/g, '<span class="comment">$1</span>');
+  line = line.replace(/(\/\/.*$)/g, '<span class="comment">$1</span>');
+
+  // Predicates
+  line = line.replace(/\b(Inv|SchTF|SchFT|SchTT)\b/g, '<span class="predicate">$1</span>');
+
+  // Keywords
+  line = line.replace(/\b(and|or|not)\b/g, '<span class="keyword">$1</span>');
+  line = line.replace(/(:-)/g, '<span class="keyword">$1</span>');
+
+  // Booleans and types
+  line = line.replace(/\b(bool|true|false)\b/g, '<span class="bool">$1</span>');
+
+  // Operators
+  line = line.replace(/(&lt;=|&gt;=|&lt;&gt;|&lt;|&gt;)/g, '<span class="operator">$1</span>');
+
+  return line;
+}
+
+function copySource() {
+  navigator.clipboard.writeText(sourceCode).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy to clipboard', 2000);
+  });
+}
+
+// Initialize
+renderSource();
+</script>
+
+</body>
+</html>

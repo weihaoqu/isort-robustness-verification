@@ -1,0 +1,1321 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Histogram Sensitivity Verification</title>
+<style>
+  :root {
+    --bg: #ffffff;
+    --surface: #f6f8fa;
+    --surface2: #eef1f5;
+    --border: #d1d9e0;
+    --text: #1f2328;
+    --text-dim: #656d76;
+    --accent: #0969da;
+    --accent2: #1a7f37;
+    --accent3: #8250df;
+    --code-bg: #f6f8fa;
+    --tab-hover: #eef1f5;
+    --highlight: #0969da1a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    line-height: 1.6;
+  }
+  header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 0 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-content {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 24px;
+  }
+  .header-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .header-sub {
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    margin-bottom: 16px;
+  }
+  .tabs {
+    display: flex;
+    gap: 0;
+  }
+  .tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    color: var(--text-dim);
+    font-size: 0.875rem;
+    font-weight: 500;
+    border-bottom: 2px solid transparent;
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    user-select: none;
+    border-radius: 6px 6px 0 0;
+  }
+  .tab:hover {
+    color: var(--text);
+    background: var(--tab-hover);
+  }
+  .tab.active {
+    color: var(--text);
+    border-bottom-color: var(--accent);
+  }
+  .tab .tab-icon { margin-right: 6px; }
+
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 32px 24px 80px;
+  }
+  .panel { display: none; }
+  .panel.active { display: block; }
+
+  /* Markdown-rendered content */
+  .content h1 { font-size: 1.75rem; margin: 32px 0 16px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+  .content h1:first-child { margin-top: 0; }
+  .content h2 { font-size: 1.375rem; margin: 28px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--border); color: var(--accent); }
+  .content h3 { font-size: 1.1rem; margin: 20px 0 8px; color: var(--accent3); }
+  .content h4 { font-size: 1rem; margin: 16px 0 8px; color: var(--text-dim); }
+  .content p { margin: 12px 0; }
+  .content strong { color: #1f2328; }
+  .content blockquote {
+    border-left: 3px solid var(--accent);
+    padding: 8px 16px;
+    margin: 12px 0;
+    background: var(--surface);
+    border-radius: 0 6px 6px 0;
+    color: var(--text-dim);
+  }
+  .content ul, .content ol { margin: 8px 0 8px 24px; }
+  .content li { margin: 4px 0; }
+  .content hr { border: none; border-top: 1px solid var(--border); margin: 24px 0; }
+  .content a { color: var(--accent); text-decoration: none; }
+  .content a:hover { text-decoration: underline; }
+  .content table {
+    width: 100%;
+    border-collapse: collapse;
+    margin: 16px 0;
+    font-size: 0.875rem;
+  }
+  .content table th {
+    text-align: left;
+    padding: 10px 14px;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    font-weight: 600;
+    color: var(--accent);
+  }
+  .content table td {
+    padding: 8px 14px;
+    border: 1px solid var(--border);
+  }
+  .content table tr:hover td {
+    background: var(--surface);
+  }
+  .content code {
+    font-family: 'SF Mono', 'Fira Code', 'Fira Mono', Menlo, Consolas, monospace;
+    background: var(--surface2);
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-size: 0.85em;
+    color: var(--accent3);
+  }
+  .content pre {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    overflow-x: auto;
+    margin: 16px 0;
+    position: relative;
+  }
+  .content pre code {
+    background: none;
+    padding: 0;
+    border-radius: 0;
+    font-size: 0.8125rem;
+    color: var(--text);
+    line-height: 1.5;
+  }
+
+  /* Source code panel */
+  .source-container {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .source-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 16px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    font-size: 0.8125rem;
+    color: var(--text-dim);
+  }
+  .source-filename {
+    font-family: 'SF Mono', Menlo, Consolas, monospace;
+    color: var(--text);
+    font-weight: 500;
+  }
+  .source-lines {
+    display: flex;
+    overflow-x: auto;
+    font-family: 'SF Mono', 'Fira Code', Menlo, Consolas, monospace;
+    font-size: 0.8125rem;
+    line-height: 1.6;
+  }
+  .line-numbers {
+    padding: 16px 0;
+    text-align: right;
+    color: var(--text-dim);
+    user-select: none;
+    min-width: 48px;
+    opacity: 0.5;
+    border-right: 1px solid var(--border);
+  }
+  .line-numbers span {
+    display: block;
+    padding: 0 12px;
+  }
+  .source-code {
+    padding: 16px;
+    flex: 1;
+    white-space: pre;
+    color: var(--text);
+  }
+  .source-code .comment { color: #6a737d; font-style: italic; }
+  .source-code .keyword { color: #cf222e; }
+  .source-code .predicate { color: #0550ae; }
+  .source-code .operator { color: #8250df; }
+  .source-code .bool { color: #1a7f37; }
+  .source-code .number { color: #953800; }
+
+  /* Copy button */
+  .copy-btn {
+    background: var(--surface);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.75rem;
+    transition: all 0.15s;
+  }
+  .copy-btn:hover { color: var(--text); background: var(--tab-hover); }
+
+  /* Info boxes */
+  .info-box {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-left: 3px solid var(--accent);
+    border-radius: 0 6px 6px 0;
+    padding: 16px 20px;
+    margin: 20px 0;
+  }
+  .info-box.success { border-left-color: var(--accent2); }
+  .info-box.purple { border-left-color: var(--accent3); }
+
+  /* Responsive */
+  @media (max-width: 768px) {
+    .tab { padding: 8px 12px; font-size: 0.8rem; }
+    main { padding: 20px 16px 60px; }
+    .header-title { font-size: 1.25rem; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="header-content">
+    <div class="header-title">Histogram Sensitivity Verification</div>
+    <div class="header-sub">Relational Cell Morphing with PCSAT &mdash; L1 Sensitivity Proof</div>
+    <div class="tabs">
+      <div class="tab active" data-panel="simple" onclick="switchTab(this)">
+        <span class="tab-icon">&#128196;</span>Overview
+      </div>
+      <div class="tab" data-panel="detailed" onclick="switchTab(this)">
+        <span class="tab-icon">&#128214;</span>Detailed Tutorial
+      </div>
+      <div class="tab" data-panel="source" onclick="switchTab(this)">
+        <span class="tab-icon">&#128187;</span>Source Code
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <!-- ============ SIMPLE / OVERVIEW PANEL ============ -->
+  <div id="panel-simple" class="panel active content">
+    <h1>Histogram Sensitivity Verification with PCSAT</h1>
+    <p>A concise tutorial on verifying L1 sensitivity 2 under the replace metric using relational cell morphing.</p>
+    <hr>
+
+    <h2>The Algorithm</h2>
+<pre><code>Histogram(D: dataset, m: num_bins)
+    h := array of m zeros
+    for i = 0 to n-1:
+        bin := D[i]           // Element i maps to bin D[i]
+        h[bin] := h[bin] + 1  // Increment that bin's count
+    return h</code></pre>
+    <p><strong>Key observation</strong>: Each element contributes exactly <strong>+1</strong> to a single bin. The only question is <strong>which bin</strong> it maps to.</p>
+    <hr>
+
+    <h2>The Property: L1 Sensitivity 2 under Replace Metric</h2>
+<pre><code>&forall;D1, D2 neighbors.  ||h(D1) - h(D2)||&#8321; &le; 2
+
+where neighbors means: &exist;k. D1[k] &ne; D2[k]  AND  &forall;i &ne; k. D1[i] = D2[i]
+      ~~~~~~~~~~~~~~                    ~~~~~~~~~~~~~~~~~~~
+      Replace metric                    Only one element differs</code></pre>
+    <p><strong>In plain English</strong>: If two datasets differ in exactly one element (the replace metric), then the L1 distance between their histograms is at most 2.</p>
+    <p><strong>Why sensitivity 2?</strong> Changing one element removes a count from one bin and adds a count to another bin &mdash; at most 2 bins are affected, each by exactly 1.</p>
+    <hr>
+
+    <h2>The Solution: Relational Cell Morphing</h2>
+    <h3>The Problem</h3>
+    <p>We need to verify a property about <strong>all pairs of neighboring datasets</strong>, but CHC solvers can't handle quantified array properties directly.</p>
+
+    <h3>The Solution: Distinguished Element</h3>
+    <p>Instead of tracking entire datasets, we track <strong>one symbolic element</strong> &mdash; the position <code>k</code> where D1 and D2 may differ:</p>
+<pre><code>&boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdr;
+&boxv;  DATASET D                                                   &boxv;
+&boxv;                                                              &boxv;
+&boxv;  Index:   0      1      2      k      4      5     ...      &boxv;
+&boxv;          +------+------+------+------+------+------+        &boxv;
+&boxv;  D1:     | same | same | same | dk1  | same | same |        &boxv;
+&boxv;          +------+------+------+------+------+------+        &boxv;
+&boxv;          +------+------+------+------+------+------+        &boxv;
+&boxv;  D2:     | same | same | same | dk2  | same | same |        &boxv;
+&boxv;          +------+------+------+------+------+------+        &boxv;
+&boxv;                              &uarr;                               &boxv;
+&boxv;                    Distinguished Element k                   &boxv;
+&boxv;                    We track: dk1, dk2 (bin indices)          &boxv;
+&boxv;                    All other positions: identical             &boxv;
+&boxdr;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxh;&boxdr;</code></pre>
+    <p><strong>Key insight</strong>: <code>k</code> is <strong>symbolic</strong> (universally quantified). The replace metric guarantees all other positions are identical &mdash; so only element <code>k</code> matters!</p>
+    <hr>
+
+    <h2>The HIT/MISS Abstraction</h2>
+    <p>When processing element <code>i</code>:</p>
+    <table>
+      <thead>
+        <tr><th>Case</th><th>Condition</th><th>What We Know</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><strong>HIT</strong></td><td><code>i = k</code></td><td>Processing distinguished element &rarr; Run 1 increments h1[dk1], Run 2 increments h2[dk2]</td></tr>
+        <tr><td><strong>MISS</strong></td><td><code>i &ne; k</code></td><td>Processing other element &rarr; D1[i] = D2[i], both runs increment <strong>same bin</strong></td></tr>
+      </tbody>
+    </table>
+    <h3>Effect on L1</h3>
+<pre><code>HIT (i = k):
+  &bull; dk1 = dk2 (same bin):   Both add to same bin &rarr; cancels out
+  &bull; dk1 &ne; dk2 (diff bins):  Each run adds to its own bin &rarr; L1 += 1 per run
+
+MISS (i &ne; k):
+  &bull; D1[i] = D2[i] by replace metric
+  &bull; Both runs increment the SAME bin &rarr; L1 unchanged</code></pre>
+    <hr>
+
+    <h2>State Variables</h2>
+<pre><code>Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n)</code></pre>
+    <table>
+      <thead>
+        <tr><th>Variable</th><th>Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>i1, i2</code></td><td>Elements processed in runs 1 and 2 (0 to n)</td></tr>
+        <tr><td><code>k</code></td><td>Distinguished element index (symbolic, never changes)</td></tr>
+        <tr><td><code>dk1, dk2</code></td><td>D1[k] and D2[k] &mdash; bin indices for element k (never change)</td></tr>
+        <tr><td><code>hit1, hit2</code></td><td>Has run 1/2 processed element k? (<code>false</code> &rarr; <code>true</code>)</td></tr>
+        <tr><td><code>l1</code></td><td>Current L1 difference ||h1 - h2||&#8321;</td></tr>
+        <tr><td><code>n</code></td><td>Dataset size</td></tr>
+      </tbody>
+    </table>
+    <hr>
+
+    <h2>Why Sensitivity 2 Works</h2>
+    <div class="info-box success">
+      <strong>THE L1 SENSITIVITY INSIGHT</strong><br><br>
+      <strong>INVARIANT:</strong> Only element k contributes to L1 difference<br><br>
+      At termination, both runs have processed all elements including k:
+      <ol style="margin:8px 0 8px 24px">
+        <li><strong>dk1 = dk2</strong>: Both runs added to same bin &rarr; cancels out &rarr; <code>l1 = 0</code></li>
+        <li><strong>dk1 &ne; dk2</strong>: Run 1 added to dk1, Run 2 added to dk2 &rarr; <code>l1 = 2</code></li>
+      </ol>
+      MISS elements contribute NOTHING (replace metric guarantees same bin)!<br><br>
+      <code>||h(D1) - h(D2)||&#8321; &le; 2</code> &check;
+    </div>
+    <p>Compare to N-robust algorithms where bounds grow with input size:</p>
+<pre><code>Histogram:       l1 &le; 2             (constant!)
+Kruskal MST:     |c1 - c2| &le; (N-1)&middot;&epsilon;  (grows with N)
+Dijkstra:        |d1 - d2| &le; N&middot;&epsilon;      (grows with N)</code></pre>
+    <hr>
+
+    <h2>Verification Results</h2>
+    <table>
+      <thead>
+        <tr><th>Goal Clause</th><th>Result</th><th>Time</th><th>Meaning</th></tr>
+      </thead>
+      <tbody>
+        <tr><td><code>l1 &gt; 2</code></td><td><strong>UNSAT</strong></td><td>~6.6s</td><td>Sensitivity &le; 2 VERIFIED &check;</td></tr>
+        <tr><td><code>l1 &le; 2</code></td><td><strong>SAT</strong></td><td>&mdash;</td><td>Bound achievable &check;</td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-box success">
+      <strong>VERIFICATION COMPLETE</strong><br><br>
+      <strong>Property:</strong> L1 Sensitivity 2 under Replace Metric<br>
+      <strong>Statement:</strong> &forall;D1, D2 neighbors. ||h(D1) - h(D2)||&#8321; &le; 2<br>
+      <strong>Result:</strong> VERIFIED &check;<br>
+      <strong>Evidence:</strong> Violation query <code>l1 &gt; 2</code> returns UNSAT (no counterexample exists)
+    </div>
+    <hr>
+
+    <h2>Key Takeaways</h2>
+    <ol>
+      <li><strong>Relational Cell Morphing</strong>: Track one symbolic element <code>k</code> (where datasets differ) plus an output cell <code>l1</code>. Since <code>k</code> is universally quantified, the proof holds for all neighboring pairs.</li>
+      <li><strong>HIT/MISS Abstraction</strong>: HIT (process k) &rarr; L1 may change; MISS (process &ne;k) &rarr; L1 unchanged (replace metric ensures same bin).</li>
+      <li><strong>Constant Sensitivity</strong>: Unlike N-robust algorithms, histogram sensitivity is bounded by 2 regardless of dataset size.</li>
+      <li><strong>PCSAT Goal Interpretation</strong>: Violation UNSAT &rarr; property verified &check;; Positive property SAT &rarr; achievable &check;</li>
+    </ol>
+    <hr>
+
+    <h2>Comparison: Histogram vs Kruskal vs Insertion Sort</h2>
+    <table>
+      <thead>
+        <tr><th>Aspect</th><th>Histogram (L1 sensitivity)</th><th>Kruskal (N-robust)</th><th>Insertion Sort (1-robust)</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>INPUT cell</td><td><code>k, dk1, dk2</code> (bin indices)</td><td><code>k, wk1, wk2</code> (edge weights)</td><td><code>k, ak1, ak2</code> (array values)</td></tr>
+        <tr><td>OUTPUT cell</td><td><code>l1</code> (L1 difference)</td><td><code>c1, c2</code> (MST costs)</td><td><code>ak1, ak2</code> (cell values)</td></tr>
+        <tr><td>HIT effect</td><td><code>l1 += 1</code> per run</td><td><code>c1' = c1 + wk1</code></td><td>Know exact value</td></tr>
+        <tr><td>MISS effect</td><td><code>l1' = l1</code> (exactly 0!)</td><td>Unknown weight, bounded by &epsilon;</td><td>Non-deterministic comparison</td></tr>
+        <tr><td>Final bound</td><td>2 (constant)</td><td>(N-1)&middot;&epsilon; (grows with N)</td><td>&epsilon; (constant)</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- ============ DETAILED TUTORIAL PANEL ============ -->
+  <div id="panel-detailed" class="panel content">
+    <h1>Histogram Sensitivity: Verification with Relational Cell Morphing</h1>
+    <h3>A Step-by-Step Tutorial on the PCSAT Encoding for L1 Sensitivity 2</h3>
+    <hr>
+
+    <h2>Verification Results</h2>
+    <table>
+      <thead><tr><th>Goal</th><th>Result</th><th>Time</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>l1 &gt; 2</code></td><td><strong>UNSAT</strong></td><td>6.6s</td><td><strong>Sensitivity &le; 2 VERIFIED &check;</strong></td></tr>
+        <tr><td><code>l1 &le; 2</code></td><td><strong>SAT</strong></td><td>&mdash;</td><td>Bound achievable &check;</td></tr>
+      </tbody>
+    </table>
+    <hr>
+
+    <h2>Part 1: The Algorithm</h2>
+<pre><code>Histogram(D: dataset, m: num_bins)
+    h := array of m zeros
+    for i = 0 to n-1:
+        bin := D[i]           // Element i maps to bin D[i]
+        h[bin] := h[bin] + 1  // Increment that bin's count
+    return h</code></pre>
+
+    <h3>What It Does</h3>
+    <ul>
+      <li><strong>Input</strong>: Dataset D with n elements, each element is a bin index in [0, m)</li>
+      <li><strong>Output</strong>: Histogram h where h[b] = count of elements mapping to bin b</li>
+    </ul>
+
+    <h3>Example</h3>
+<pre><code>D = [2, 0, 1, 2, 0]  (n=5 elements, m=3 bins)
+
+Processing:
+  D[0]=2: h[2]++  &rarr;  h = [0, 0, 1]
+  D[1]=0: h[0]++  &rarr;  h = [1, 0, 1]
+  D[2]=1: h[1]++  &rarr;  h = [1, 1, 1]
+  D[3]=2: h[2]++  &rarr;  h = [1, 1, 2]
+  D[4]=0: h[0]++  &rarr;  h = [2, 1, 2]
+
+Output: h = [2, 1, 2]</code></pre>
+    <hr>
+
+    <h2>Part 2: The Property &mdash; L1 Sensitivity under Replace Metric</h2>
+    <h3>Replace Metric (Neighboring Datasets)</h3>
+    <p>Two datasets D1 and D2 are <strong>neighbors</strong> if they differ in exactly one element:</p>
+<pre><code>&exist;k. D1[k] &ne; D2[k]  AND  &forall;i &ne; k. D1[i] = D2[i]</code></pre>
+    <ul>
+      <li><strong>Position k</strong>: D1[k] may differ from D2[k]</li>
+      <li><strong>All other positions</strong>: identical</li>
+    </ul>
+
+    <h3>L1 Sensitivity</h3>
+<pre><code>Sensitivity = max         ||h(D1) - h(D2)||&#8321;
+              D1,D2 neighbors
+
+where ||h1 - h2||&#8321; = &Sigma;&#8346; |h1[b] - h2[b]|</code></pre>
+
+    <h3>Claim: Sensitivity = 2</h3>
+    <p>We want to prove:</p>
+<pre><code>&forall;D1, D2 neighbors.  ||h(D1) - h(D2)||&#8321; &le; 2</code></pre>
+    <hr>
+
+    <h2>Part 3: Why Sensitivity is 2 &mdash; Informal Proof</h2>
+    <p>Let k be the position where D1 and D2 may differ. Let dk1 = D1[k] and dk2 = D2[k].</p>
+
+    <h3>Case 1: dk1 = dk2 (same bin)</h3>
+<pre><code>Element k maps to the SAME bin in both datasets.
+
+Run 1: h1[dk1] += 1
+Run 2: h2[dk2] += 1  (but dk2 = dk1, so same bin!)
+
+Result: h1[dk1] = h2[dk1]
+L1 = 0  &check;</code></pre>
+
+    <h3>Case 2: dk1 &ne; dk2 (different bins)</h3>
+<pre><code>Element k maps to DIFFERENT bins in the two datasets.
+
+Run 1: h1[dk1] += 1  &rarr;  h1[dk1] = h2[dk1] + 1
+Run 2: h2[dk2] += 1  &rarr;  h2[dk2] = h1[dk2] + 1
+
+Differences:
+  |h1[dk1] - h2[dk1]| = |1 - 0| = 1
+  |h1[dk2] - h2[dk2]| = |0 - 1| = 1
+  All other bins: equal (MISS elements go to same bin)
+
+L1 = 1 + 1 = 2  &check;</code></pre>
+
+    <h3>What About MISS Elements (i &ne; k)?</h3>
+<pre><code>For all i &ne; k: D1[i] = D2[i]  (by replace metric!)
+
+So MISS elements go to the SAME bin in both runs.
+Both h1[D1[i]] and h2[D2[i]] increment by 1.
+Net contribution to L1: 0</code></pre>
+    <div class="info-box">
+      <strong>KEY INSIGHT</strong>: The replace metric ensures MISS elements don't contribute to L1! This is what makes the encoding work.
+    </div>
+    <hr>
+
+    <h2>Part 4: Relational Cell Morphing Structure</h2>
+<pre><code>+-------------------------------------------------------------------------+
+|  INPUT CELL (distinguished dataset element)                             |
+|  -------------------------------------------                            |
+|                                                                         |
+|  k:     Distinguished index (position where datasets MAY differ)        |
+|  dk1:   D1[k] &mdash; bin for element k in dataset 1                         |
+|  dk2:   D2[k] &mdash; bin for element k in dataset 2                         |
+|                                                                         |
+|  PRECONDITION: 0 &le; dk1, dk2 &lt; m (valid bins)                           |
+|  CONSTRAINT: &forall;i &ne; k: D1[i] = D2[i] (replace metric &mdash; implicit!)        |
+|                                                                         |
+|  k, dk1, dk2 NEVER CHANGE                                              |
+|                                                                         |
++-------------------------------------------------------------------------+
+|  OUTPUT CELL (L1 difference)                                            |
+|  -----------------------------------                                    |
+|                                                                         |
+|  l1:    Current ||h1 - h2||&#8321;                                          |
+|                                                                         |
+|  POSTCONDITION: l1 &le; 2                                                  |
+|                                                                         |
+|  l1 CAN CHANGE during execution                                         |
+|                                                                         |
++-------------------------------------------------------------------------+</code></pre>
+
+    <h3>How the Replace Metric is Encoded</h3>
+    <p>The constraint "&forall;i &ne; k: D1[i] = D2[i]" is <strong>NOT stated explicitly</strong>.</p>
+    <p>Instead, it's captured <strong>implicitly</strong> through the HIT/MISS abstraction:</p>
+    <ul>
+      <li><strong>HIT (i = k)</strong>: We process the distinguished element. D1[k] and D2[k] may differ (dk1 vs dk2).</li>
+      <li><strong>MISS (i &ne; k)</strong>: We process some other element. By the replace metric, D1[i] = D2[i], so both runs increment the same bin. L1 unchanged.</li>
+    </ul>
+    <p>This is the elegance of cell morphing &mdash; we don't track the full datasets!</p>
+    <hr>
+
+    <h2>Part 5: HIT/MISS Abstraction</h2>
+    <h3>When Processing Element i</h3>
+    <div class="info-box purple">
+      <strong>HIT (i = k): Process the DISTINGUISHED element</strong><br><br>
+      Run 1 increments h1[dk1]<br>
+      Run 2 increments h2[dk2]<br><br>
+      Effect on L1 depends on whether dk1 = dk2:<br><br>
+      <strong>Sub-case: dk1 = dk2 (same bin)</strong><br>
+      Both runs increment the SAME bin.<br>
+      &bull; Run 1 HIT alone: l1 = 1 (h1 ahead by 1)<br>
+      &bull; Run 2 HIT alone: l1 = 1 (h2 ahead by 1)<br>
+      &bull; Both HIT: l1 = 0 (cancels out!)<br>
+      At termination: l1 = 0<br><br>
+      <strong>Sub-case: dk1 &ne; dk2 (different bins)</strong><br>
+      Runs increment DIFFERENT bins.<br>
+      &bull; Run 1 HIT: l1 += 1 (h1[dk1] increases, h2[dk1] doesn't)<br>
+      &bull; Run 2 HIT: l1 += 1 (h2[dk2] increases, h1[dk2] doesn't)<br>
+      At termination: l1 = 2
+    </div>
+    <div class="info-box">
+      <strong>MISS (i &ne; k): Process some OTHER element</strong><br><br>
+      By replace metric: D1[i] = D2[i]<br>
+      Both runs increment the SAME bin.<br><br>
+      Effect on L1: UNCHANGED (l1' = l1)<br><br>
+      This is why MISS is simple &mdash; no contribution to sensitivity!
+    </div>
+    <hr>
+
+    <h2>Part 6: State Variables</h2>
+<pre><code>Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n)</code></pre>
+    <table>
+      <thead><tr><th>Variable</th><th>Type</th><th>Meaning</th><th>Changes?</th></tr></thead>
+      <tbody>
+        <tr><td><code>i1</code></td><td>int</td><td>Elements processed in run 1</td><td>Yes (0 &rarr; n)</td></tr>
+        <tr><td><code>i2</code></td><td>int</td><td>Elements processed in run 2</td><td>Yes (0 &rarr; n)</td></tr>
+        <tr><td><code>k</code></td><td>int</td><td>Distinguished element index</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>dk1</code></td><td>int</td><td>D1[k] &mdash; bin for element k in run 1</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>dk2</code></td><td>int</td><td>D2[k] &mdash; bin for element k in run 2</td><td><strong>Never</strong></td></tr>
+        <tr><td><code>hit1</code></td><td>bool</td><td>Has run 1 processed element k?</td><td>Yes (false &rarr; true)</td></tr>
+        <tr><td><code>hit2</code></td><td>bool</td><td>Has run 2 processed element k?</td><td>Yes (false &rarr; true)</td></tr>
+        <tr><td><code>l1</code></td><td>int</td><td>Current L1 difference</td><td>Yes</td></tr>
+        <tr><td><code>n</code></td><td>int</td><td>Dataset size</td><td><strong>Never</strong></td></tr>
+      </tbody>
+    </table>
+
+    <h3>Invariant</h3>
+<pre><code>l1 = ||h1 - h2||&#8321; at current point in execution
+
+Specifically:
+  If dk1 = dk2:
+    l1 = |hit1 - hit2|  &isin; {0, 1}
+    (1 if exactly one has processed k, 0 otherwise)
+
+  If dk1 &ne; dk2:
+    l1 = (hit1 ? 1 : 0) + (hit2 ? 1 : 0)  &isin; {0, 1, 2}
+    (counts how many runs have processed k)</code></pre>
+    <hr>
+
+    <h2>Part 7: Initialization</h2>
+<pre><code>Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n) :-
+    i1 = 0, i2 = 0,
+    n &gt; 0,
+    0 &le; k, k &lt; n,
+    0 &le; dk1, 0 &le; dk2,
+    !hit1, !hit2,
+    l1 = 0.</code></pre>
+
+    <h4>What This Says</h4>
+    <ol>
+      <li><strong><code>i1 = 0, i2 = 0</code></strong>: No elements processed yet</li>
+      <li><strong><code>n &gt; 0</code></strong>: Dataset has at least one element</li>
+      <li><strong><code>0 &le; k, k &lt; n</code></strong>: Distinguished index is valid</li>
+      <li><strong><code>0 &le; dk1, 0 &le; dk2</code></strong>: Bin indices are non-negative</li>
+      <li><strong><code>!hit1, !hit2</code></strong>: Element k not yet processed in either run</li>
+      <li><strong><code>l1 = 0</code></strong>: Initial L1 difference is 0 (empty histograms are equal)</li>
+    </ol>
+    <hr>
+
+    <h2>Part 8: TF Transition (Run 1 Steps)</h2>
+<pre><code>Inv(i1', i2, k, dk1, dk2, hit1':bool, hit2:bool, l1', n) :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    SchTF(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    (
+        (* HIT with dk1 = dk2 and hit2: cancels out *)
+        i1 &lt; n and i1 = k and dk1 = dk2 and hit2 and
+        i1' = i1 + 1 and hit1' and l1' = 0
+    ) or (
+        (* HIT with dk1 = dk2 and !hit2: l1 becomes 1 *)
+        i1 &lt; n and i1 = k and dk1 = dk2 and !hit2 and
+        i1' = i1 + 1 and hit1' and l1' = 1
+    ) or (
+        (* HIT with dk1 &ne; dk2: l1 increases by 1 *)
+        i1 &lt; n and i1 = k and dk1 &lt;&gt; dk2 and
+        i1' = i1 + 1 and hit1' and l1' = l1 + 1
+    ) or (
+        (* MISS: no change *)
+        i1 &lt; n and i1 &lt;&gt; k and
+        i1' = i1 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and
+        l1' = l1
+    ) or (
+        (* Finished *)
+        i1 &gt;= n and i1' = i1 and
+        (hit1' and hit1 or !hit1' and !hit1) and
+        l1' = l1
+    ).</code></pre>
+
+    <h4>Case-by-Case Analysis</h4>
+    <p><strong>Case 1: HIT with dk1 = dk2 and hit2 already true</strong></p>
+<pre><code>Run 2 already processed k (added to bin dk2 = dk1).
+Now run 1 processes k (adds to bin dk1).
+Both added to same bin &rarr; cancels out.
+l1' = 0</code></pre>
+
+    <p><strong>Case 2: HIT with dk1 = dk2 and hit2 false</strong></p>
+<pre><code>Run 2 hasn't processed k yet.
+Run 1 processes k (adds to bin dk1).
+h1[dk1] is now 1 ahead of h2[dk1].
+l1' = 1</code></pre>
+
+    <p><strong>Case 3: HIT with dk1 &ne; dk2</strong></p>
+<pre><code>Bins are different.
+Run 1 processes k (adds to bin dk1).
+h1[dk1] increases by 1, h2[dk1] unchanged.
+l1' = l1 + 1</code></pre>
+
+    <p><strong>Case 4: MISS</strong></p>
+<pre><code>Processing element i &ne; k.
+D1[i] = D2[i] by replace metric.
+Both runs will add to same bin.
+l1' = l1 (unchanged)</code></pre>
+
+    <p><strong>Case 5: Finished</strong></p>
+<pre><code>i1 &gt;= n, nothing to process.
+l1' = l1</code></pre>
+    <hr>
+
+    <h2>Part 9: Why hit1/hit2 Preservation Uses Explicit Cases</h2>
+    <p>You might wonder why we write:</p>
+<pre><code>(hit1' and hit1 or !hit1' and !hit1)</code></pre>
+    <p>Instead of <code>hit1' = hit1</code>.</p>
+    <p><strong>Reason</strong>: PCSAT doesn't allow boolean assignment <code>b' = b</code>.</p>
+    <p>This pattern explicitly says "hit1' has the same value as hit1":</p>
+    <ul>
+      <li>If <code>hit1</code> is true, then <code>hit1'</code> must be true</li>
+      <li>If <code>hit1</code> is false, then <code>hit1'</code> must be false</li>
+    </ul>
+    <hr>
+
+    <h2>Part 10: TT Transition &mdash; Key Cases</h2>
+    <p>The TT transition handles all combinations. The most important cases:</p>
+
+    <h3>HIT-HIT with dk1 = dk2</h3>
+<pre><code>i1 &lt; n and i1 = k and i2 &lt; n and i2 = k and dk1 = dk2 and
+i1' = i1 + 1 and i2' = i2 + 1 and hit1' and hit2' and l1' = 0</code></pre>
+    <p>Both runs process k simultaneously, both add to the same bin. Net effect: l1 = 0 (perfect cancellation).</p>
+
+    <h3>HIT-HIT with dk1 &ne; dk2</h3>
+<pre><code>i1 &lt; n and i1 = k and i2 &lt; n and i2 = k and dk1 &lt;&gt; dk2 and
+i1' = i1 + 1 and i2' = i2 + 1 and hit1' and hit2' and l1' = l1 + 2</code></pre>
+    <p>Both runs process k simultaneously, but add to different bins. Net effect: l1 increases by 2.</p>
+
+    <h3>MISS-MISS</h3>
+<pre><code>i1 &lt; n and i1 &lt;&gt; k and i2 &lt; n and i2 &lt;&gt; k and
+... and l1' = l1</code></pre>
+    <p>Both runs process non-k elements. By replace metric, both add to the same bin. l1 unchanged.</p>
+    <hr>
+
+    <h2>Part 11: Goal Clause</h2>
+<pre><code>l1 &gt; 2 :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    n &le; i1, n &le; i2.</code></pre>
+
+    <h3>What This Asks</h3>
+    <p>"At termination (both runs finished), is it possible that l1 &gt; 2?"</p>
+
+    <h4>Interpretation</h4>
+    <ul>
+      <li><strong>UNSAT</strong>: No! Violation unreachable &rarr; <strong>Sensitivity &le; 2 VERIFIED!</strong></li>
+      <li><strong>SAT</strong>: Yes, violation is possible &rarr; Property does NOT hold</li>
+    </ul>
+    <hr>
+
+    <h2>Part 12: Correctness Argument</h2>
+    <h3>Why l1 &le; 2 at Termination</h3>
+    <p>At termination, both runs have processed all n elements, including element k. So <code>hit1 = true</code> and <code>hit2 = true</code>.</p>
+
+    <p><strong>Case dk1 = dk2:</strong></p>
+<pre><code>Both runs added 1 to the same bin (dk1 = dk2).
+These cancel out.
+l1 = 0 &le; 2 &check;</code></pre>
+
+    <p><strong>Case dk1 &ne; dk2:</strong></p>
+<pre><code>Run 1 added 1 to bin dk1.
+Run 2 added 1 to bin dk2.
+|h1[dk1] - h2[dk1]| = 1
+|h1[dk2] - h2[dk2]| = 1
+All other bins: equal (MISS elements, same bin by replace metric)
+l1 = 1 + 1 = 2 &le; 2 &check;</code></pre>
+
+    <h3>Why MISS Elements Don't Contribute</h3>
+    <p>The replace metric guarantees: &forall;i &ne; k. D1[i] = D2[i]</p>
+    <p>So for MISS elements, both runs increment the <strong>same bin</strong>. This means h1[b] and h2[b] both increase by 1. The difference |h1[b] - h2[b]| is unchanged.</p>
+    <div class="info-box success">
+      <strong>This is the key property that makes the encoding work!</strong>
+    </div>
+    <hr>
+
+    <h2>Part 13: Visual Summary</h2>
+<pre><code>+-------------------------------------------------------------------------+
+|                 HISTOGRAM SENSITIVITY VERIFICATION                       |
++-------------------------------------------------------------------------+
+|                                                                         |
+|  INPUT: Two neighboring datasets D1, D2 (replace metric)               |
+|                                                                         |
+|    D1 = [a, b, c, dk1, e, f, ...]     (element k has value dk1)        |
+|    D2 = [a, b, c, dk2, e, f, ...]     (element k has value dk2)        |
+|              &uarr;   &uarr;   &uarr;   &uarr;    &uarr;                                         |
+|             same same  k  same same    &larr; Replace metric!               |
+|                                                                         |
+|  Distinguished element k: dk1 = D1[k], dk2 = D2[k]                     |
+|  +-------------------------------------------------------------+       |
+|  |  PRECONDITION: Only position k may differ                   |       |
+|  |  k, dk1, dk2 NEVER CHANGE                                   |       |
+|  +-------------------------------------------------------------+       |
+|                           |                                             |
+|                           &darr;                                             |
+|  +-------------------------------------------------------------+       |
+|  |                    HISTOGRAM ALGORITHM                       |       |
+|  |                                                              |       |
+|  |  For each element i:                                         |       |
+|  |                                                              |       |
+|  |    +-----------------------------------------------------+  |       |
+|  |    | HIT (i = k):                                        |  |       |
+|  |    |   Run 1 increments h1[dk1]                          |  |       |
+|  |    |   Run 2 increments h2[dk2]                          |  |       |
+|  |    |                                                     |  |       |
+|  |    |   If dk1 = dk2: same bin, cancels &rarr; l1 = 0         |  |       |
+|  |    |   If dk1 &ne; dk2: diff bins &rarr; l1 += 1 per run       |  |       |
+|  |    +-----------------------------------------------------+  |       |
+|  |    | MISS (i &ne; k):                                       |  |       |
+|  |    |   D1[i] = D2[i] by replace metric!                 |  |       |
+|  |    |   Both runs increment same bin                      |  |       |
+|  |    |   l1 UNCHANGED                                      |  |       |
+|  |    +-----------------------------------------------------+  |       |
+|  |                                                              |       |
+|  +-------------------------------------------------------------+       |
+|                           |                                             |
+|                           &darr;                                             |
+|  OUTPUT: L1 difference = ||h1 - h2||&#8321;                                 |
+|  +-------------------------------------------------------------+       |
+|  |  POSTCONDITION: l1 &le; 2                                      |       |
+|  |                                                              |       |
+|  |  At termination:                                            |       |
+|  |    dk1 = dk2 &rarr; l1 = 0  &check;                                   |       |
+|  |    dk1 &ne; dk2 &rarr; l1 = 2  &check;                                   |       |
+|  |                                                              |       |
+|  |  VERIFIED! &check;  (goal l1 &gt; 2 returns UNSAT)                  |       |
+|  +-------------------------------------------------------------+       |
+|                                                                         |
++-------------------------------------------------------------------------+</code></pre>
+    <hr>
+
+    <h2>Part 14: Comparison with Kruskal</h2>
+    <table>
+      <thead><tr><th>Aspect</th><th>Kruskal</th><th>Histogram</th></tr></thead>
+      <tbody>
+        <tr><td><strong>Property</strong></td><td>(N-1)-robust MST cost</td><td>L1 sensitivity 2</td></tr>
+        <tr><td><strong>INPUT cell</strong></td><td><code>k, wk1, wk2</code> (edge weights)</td><td><code>k, dk1, dk2</code> (bin indices)</td></tr>
+        <tr><td><strong>OUTPUT cell</strong></td><td><code>c1, c2</code> (MST costs)</td><td><code>l1</code> (L1 difference)</td></tr>
+        <tr><td><strong>HIT effect</strong></td><td><code>c1' = c1 + wk1</code> (explicit)</td><td><code>l1' = l1 + 1</code> or complex</td></tr>
+        <tr><td><strong>MISS effect</strong></td><td>Unknown weight, bounded by &epsilon;</td><td><code>l1' = l1</code> (exactly 0!)</td></tr>
+        <tr><td><strong>Final bound</strong></td><td>(N-1)&middot;&epsilon; (grows with N)</td><td>2 (constant!)</td></tr>
+        <tr><td><strong>Why bound holds</strong></td><td>Each edge &le; &epsilon;, N-1 edges</td><td>At most 2 bins differ</td></tr>
+      </tbody>
+    </table>
+
+    <h3>Key Difference</h3>
+    <p><strong>Kruskal</strong>: MISS contributes <strong>unknown amount bounded by &epsilon;</strong>. We don't know the exact edge weight, but we know it's within &epsilon; of the other run.</p>
+    <p><strong>Histogram</strong>: MISS contributes <strong>exactly 0</strong>. Replace metric guarantees D1[i] = D2[i] for i &ne; k. Same bin incremented in both runs. Perfect cancellation.</p>
+    <div class="info-box">
+      This makes histogram simpler in some ways &mdash; MISS has no uncertainty!
+    </div>
+    <hr>
+
+    <h2>Part 15: Key Takeaways</h2>
+    <ol>
+      <li><strong>Replace metric is implicit</strong>: We don't state "&forall;i &ne; k. D1[i] = D2[i]" explicitly. Instead, MISS elements implicitly go to the same bin because that's what replace metric guarantees.</li>
+      <li><strong>Two distinguished cells</strong>:
+        <ul>
+          <li>INPUT: <code>k, dk1, dk2</code> (never change)</li>
+          <li>OUTPUT: <code>l1</code> (tracks current L1 difference)</li>
+        </ul>
+      </li>
+      <li><strong>HIT is where the action is</strong>: Only element k contributes to L1 difference. MISS elements contribute nothing.</li>
+      <li><strong>Sensitivity is constant</strong>: Unlike Kruskal where bound grows with N, histogram sensitivity is always &le; 2, regardless of dataset size.</li>
+      <li><strong>dk1 = dk2 case</strong>: If element k maps to the same bin in both datasets, there's no difference at all (l1 = 0).</li>
+      <li><strong>dk1 &ne; dk2 case</strong>: Maximum sensitivity of 2, achieved when element k maps to different bins.</li>
+    </ol>
+    <hr>
+
+    <h2>Part 16: Test Queries</h2>
+<pre><code>(* Test 1: L1 &le; 2 achievable - should be SAT *)
+l1 &le; 2 :-
+    Inv(...), n &le; i1, n &le; i2.
+
+(* Test 2: L1 = 2 when dk1 &ne; dk2 - should be SAT *)
+l1 = 2 :-
+    Inv(...), n &le; i1, n &le; i2, dk1 &lt;&gt; dk2.
+
+(* Test 3: L1 = 0 when dk1 = dk2 - should be SAT *)
+l1 = 0 :-
+    Inv(...), n &le; i1, n &le; i2, dk1 = dk2.
+
+(* Test 4: L1 &gt; 0 when dk1 = dk2? - should be UNSAT *)
+l1 &gt; 0 :-
+    Inv(...), n &le; i1, n &le; i2, dk1 = dk2.
+
+(* Test 5: Sensitivity 1 too tight - should be SAT (violation reachable) *)
+l1 &gt; 1 :-
+    Inv(...), n &le; i1, n &le; i2.</code></pre>
+    <table>
+      <thead><tr><th>Test</th><th>Expected</th><th>Meaning</th></tr></thead>
+      <tbody>
+        <tr><td><code>l1 &gt; 2</code></td><td><strong>UNSAT</strong></td><td>Sensitivity &le; 2 verified</td></tr>
+        <tr><td><code>l1 &le; 2</code></td><td><strong>SAT</strong></td><td>Bound achievable</td></tr>
+        <tr><td><code>l1 = 2</code> with <code>dk1 &lt;&gt; dk2</code></td><td><strong>SAT</strong></td><td>Max sensitivity achieved</td></tr>
+        <tr><td><code>l1 = 0</code> with <code>dk1 = dk2</code></td><td><strong>SAT</strong></td><td>Same bin &rarr; no diff</td></tr>
+        <tr><td><code>l1 &gt; 0</code> with <code>dk1 = dk2</code></td><td><strong>UNSAT</strong></td><td>Same bin &rarr; must be 0</td></tr>
+        <tr><td><code>l1 &gt; 1</code></td><td><strong>SAT</strong></td><td>Sensitivity 1 too tight</td></tr>
+      </tbody>
+    </table>
+
+    <div class="info-box success">
+      <strong>VERIFICATION COMPLETE</strong><br><br>
+      <strong>Property:</strong> L1 Sensitivity 2 under Replace Metric<br>
+      <strong>Statement:</strong> &forall;D1, D2 neighbors. ||h(D1) - h(D2)||&#8321; &le; 2<br>
+      <strong>Result:</strong> VERIFIED &check;<br>
+      <strong>Evidence:</strong> UNSAT for <code>l1 &gt; 2</code> (6.6s), SAT for <code>l1 &le; 2</code>
+    </div>
+    <hr>
+
+    <h2>References</h2>
+    <ol>
+      <li><strong>Chaudhuri, Gulwani, Lublinerman</strong> &mdash; "Continuity and Robustness of Programs" (CACM 2012)</li>
+      <li><strong>Monniaux &amp; Gonnord</strong> &mdash; "Cell Morphing: From Array Programs to Array-Free Horn Clauses" (SAS 2016)</li>
+      <li><strong>Unno, Terauchi, Kobayashi</strong> &mdash; "Constraint-based Relational Verification" (CAV 2021)</li>
+      <li><strong>PCSAT Solver</strong> &mdash; Tool for solving predicate constraint satisfaction problems</li>
+    </ol>
+  </div>
+
+  <!-- ============ SOURCE CODE PANEL ============ -->
+  <div id="panel-source" class="panel">
+    <div class="source-container">
+      <div class="source-header">
+        <span class="source-filename">histogram_v4.clp</span>
+        <button class="copy-btn" onclick="copySource()">Copy to clipboard</button>
+      </div>
+      <div class="source-lines">
+        <div class="line-numbers" id="line-nums"></div>
+        <div class="source-code" id="source-code"></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script>
+// Tab switching
+function switchTab(el) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  el.classList.add('active');
+  document.getElementById('panel-' + el.dataset.panel).classList.add('active');
+}
+
+// Source code content
+const sourceCode = `
+(*
+Histogram(D: dataset, m: num_bins)
+    h := array of m zeros
+    for i = 0 to n-1:
+        bin := D[i]
+        h[bin] := h[bin] + 1
+    return h
+*)
+
+(*
+PROPERTY: L1 Sensitivity 2 under Replace Metric
+
+Replace metric: D1 and D2 differ in exactly one element (at position k).
+  - D1[k] may differ from D2[k]
+  - For all i \u2260 k: D1[i] = D2[i]
+
+Claim: ||h(D1) - h(D2)||_1 \u2264 2
+
+================================================================================
+RELATIONAL CELL MORPHING
+================================================================================
+
+INPUT CELL (distinguished dataset element):
+  k:     Distinguished element index (where datasets MAY differ)
+  dk1:   D1[k] - bin for element k in dataset 1
+  dk2:   D2[k] - bin for element k in dataset 2
+
+  PRECONDITION: 0 \u2264 dk1, dk2 < m (valid bins)
+  CONSTRAINT: \u2200i \u2260 k: D1[i] = D2[i] (replace metric \u2014 implicit in HIT/MISS)
+
+  k, dk1, dk2 NEVER CHANGE
+
+OUTPUT CELL (L1 difference):
+  l1:    Current ||h1 - h2||_1
+
+  POSTCONDITION: l1 \u2264 2
+
+================================================================================
+ANALYSIS: How L1 Changes
+================================================================================
+
+For MISS (i \u2260 k):
+  D1[i] = D2[i], so both runs increment the same bin
+  L1 unchanged
+
+For HIT (i = k):
+  Run 1 increments h1[dk1]
+  Run 2 increments h2[dk2]
+
+  Sub-case dk1 = dk2 (same bin):
+    Both increments go to the same bin
+    - Run 1 alone: h1[dk1] += 1, L1 = |1 - 0| = 1
+    - Run 2 alone: h2[dk1] += 1, L1 = |0 - 1| = 1
+    - Both: h1[dk1] += 1, h2[dk1] += 1, L1 = |1 - 1| = 0
+
+  Sub-case dk1 \u2260 dk2 (different bins):
+    Increments go to different bins
+    - Run 1 alone: h1[dk1] += 1, L1 = |1| + |0| = 1
+    - Run 2 alone: h2[dk2] += 1, L1 = |0| + |-1| = 1
+    - Both: L1 = |1| + |-1| = 2
+
+================================================================================
+SIMPLIFIED MODEL
+================================================================================
+
+Since L1 depends on whether dk1 = dk2, and on the order of HITs,
+we track:
+  - hit1: has run 1 processed element k?
+  - hit2: has run 2 processed element k?
+  - l1:   current L1 difference
+
+Update rules for l1:
+
+  Case dk1 = dk2:
+    l1 = |hit1 - hit2|  (0 or 1 during, 0 at end)
+    - If hit1 and !hit2: l1 = 1
+    - If !hit1 and hit2: l1 = 1
+    - If hit1 and hit2:  l1 = 0
+    - If !hit1 and !hit2: l1 = 0
+
+  Case dk1 \u2260 dk2:
+    l1 = hit1 + hit2  (0, 1, or 2)
+    - l1 increases by 1 each time a HIT occurs
+
+At termination: hit1 = hit2 = true
+  - If dk1 = dk2: l1 = |1 - 1| = 0 \u2264 2 \u2713
+  - If dk1 \u2260 dk2: l1 = 1 + 1 = 2 \u2264 2 \u2713
+
+================================================================================
+STATE VARIABLES
+================================================================================
+
+  i1, i2      : elements processed (0 to n)
+  k           : distinguished element index (NEVER CHANGES)
+  dk1, dk2    : D1[k], D2[k] - bins for element k (NEVER CHANGE)
+  hit1, hit2  : has element k been processed? (CAN CHANGE)
+  l1          : current L1 difference (CAN CHANGE)
+  n           : dataset size
+*)
+
+
+(******************************************************************************)
+(* INITIALIZATION                                                             *)
+(******************************************************************************)
+
+Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n) :-
+    i1 = 0, i2 = 0,
+    n > 0,
+    0 <= k, k < n,
+    0 <= dk1, 0 <= dk2,
+    !hit1, !hit2,
+    l1 = 0.
+
+
+(******************************************************************************)
+(* TF TRANSITION - Only run 1 steps                                           *)
+(*                                                                            *)
+(* HIT (i1 = k):                                                              *)
+(*   If dk1 = dk2:                                                            *)
+(*     - If !hit2: l1' = 1 (run 1 added, run 2 hasn't)                       *)
+(*     - If hit2:  l1' = 0 (both added to same bin, cancels)                 *)
+(*   If dk1 \u2260 dk2:                                                            *)
+(*     - l1' = l1 + 1 (run 1 adds to its bin)                                *)
+(*                                                                            *)
+(* MISS (i1 \u2260 k): l1' = l1 (same bin in both runs, no change)                *)
+(******************************************************************************)
+
+Inv(i1', i2, k, dk1, dk2, hit1':bool, hit2:bool, l1', n) :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    SchTF(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    (
+        (* HIT with dk1 = dk2 and hit2: cancels out *)
+        i1 < n and i1 = k and dk1 = dk2 and hit2 and
+        i1' = i1 + 1 and hit1' and l1' = 0
+    ) or (
+        (* HIT with dk1 = dk2 and !hit2: l1 becomes 1 *)
+        i1 < n and i1 = k and dk1 = dk2 and !hit2 and
+        i1' = i1 + 1 and hit1' and l1' = 1
+    ) or (
+        (* HIT with dk1 \u2260 dk2: l1 increases by 1 *)
+        i1 < n and i1 = k and dk1 <> dk2 and
+        i1' = i1 + 1 and hit1' and l1' = l1 + 1
+    ) or (
+        (* MISS: no change *)
+        i1 < n and i1 <> k and
+        i1' = i1 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and
+        l1' = l1
+    ) or (
+        (* Finished *)
+        i1 >= n and i1' = i1 and
+        (hit1' and hit1 or !hit1' and !hit1) and
+        l1' = l1
+    ).
+
+
+(******************************************************************************)
+(* FT TRANSITION - Only run 2 steps                                           *)
+(******************************************************************************)
+
+Inv(i1, i2', k, dk1, dk2, hit1:bool, hit2':bool, l1', n) :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    SchFT(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    (
+        (* HIT with dk1 = dk2 and hit1: cancels out *)
+        i2 < n and i2 = k and dk1 = dk2 and hit1 and
+        i2' = i2 + 1 and hit2' and l1' = 0
+    ) or (
+        (* HIT with dk1 = dk2 and !hit1: l1 becomes 1 *)
+        i2 < n and i2 = k and dk1 = dk2 and !hit1 and
+        i2' = i2 + 1 and hit2' and l1' = 1
+    ) or (
+        (* HIT with dk1 \u2260 dk2: l1 increases by 1 *)
+        i2 < n and i2 = k and dk1 <> dk2 and
+        i2' = i2 + 1 and hit2' and l1' = l1 + 1
+    ) or (
+        (* MISS: no change *)
+        i2 < n and i2 <> k and
+        i2' = i2 + 1 and
+        (hit2' and hit2 or !hit2' and !hit2) and
+        l1' = l1
+    ) or (
+        (* Finished *)
+        i2 >= n and i2' = i2 and
+        (hit2' and hit2 or !hit2' and !hit2) and
+        l1' = l1
+    ).
+
+
+(******************************************************************************)
+(* TT TRANSITION - Both runs step                                             *)
+(******************************************************************************)
+
+Inv(i1', i2', k, dk1, dk2, hit1':bool, hit2':bool, l1', n) :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    SchTT(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    (
+        (* HIT-HIT with dk1 = dk2: both add to same bin, l1 = 0 *)
+        i1 < n and i1 = k and i2 < n and i2 = k and dk1 = dk2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and hit2' and l1' = 0
+    ) or (
+        (* HIT-HIT with dk1 \u2260 dk2: both add to different bins, l1 += 2 *)
+        i1 < n and i1 = k and i2 < n and i2 = k and dk1 <> dk2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and hit2' and l1' = l1 + 2
+    ) or (
+        (* HIT-MISS with dk1 = dk2 and hit2: run 1 cancels existing diff *)
+        i1 < n and i1 = k and i2 < n and i2 <> k and dk1 = dk2 and hit2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = 0
+    ) or (
+        (* HIT-MISS with dk1 = dk2 and !hit2: l1 becomes 1 *)
+        i1 < n and i1 = k and i2 < n and i2 <> k and dk1 = dk2 and !hit2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = 1
+    ) or (
+        (* HIT-MISS with dk1 \u2260 dk2: l1 += 1 *)
+        i1 < n and i1 = k and i2 < n and i2 <> k and dk1 <> dk2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = l1 + 1
+    ) or (
+        (* MISS-HIT with dk1 = dk2 and hit1: run 2 cancels existing diff *)
+        i1 < n and i1 <> k and i2 < n and i2 = k and dk1 = dk2 and hit1 and
+        i1' = i1 + 1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = 0
+    ) or (
+        (* MISS-HIT with dk1 = dk2 and !hit1: l1 becomes 1 *)
+        i1 < n and i1 <> k and i2 < n and i2 = k and dk1 = dk2 and !hit1 and
+        i1' = i1 + 1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = 1
+    ) or (
+        (* MISS-HIT with dk1 \u2260 dk2: l1 += 1 *)
+        i1 < n and i1 <> k and i2 < n and i2 = k and dk1 <> dk2 and
+        i1' = i1 + 1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = l1 + 1
+    ) or (
+        (* MISS-MISS: no change *)
+        i1 < n and i1 <> k and i2 < n and i2 <> k and
+        i1' = i1 + 1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and
+        (hit2' and hit2 or !hit2' and !hit2) and
+        l1' = l1
+    ) or (
+        (* HIT-Finished *)
+        i1 < n and i1 = k and i2 >= n and dk1 = dk2 and hit2 and
+        i1' = i1 + 1 and i2' = i2 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = 0
+    ) or (
+        i1 < n and i1 = k and i2 >= n and dk1 = dk2 and !hit2 and
+        i1' = i1 + 1 and i2' = i2 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = 1
+    ) or (
+        i1 < n and i1 = k and i2 >= n and dk1 <> dk2 and
+        i1' = i1 + 1 and i2' = i2 and hit1' and
+        (hit2' and hit2 or !hit2' and !hit2) and l1' = l1 + 1
+    ) or (
+        (* Finished-HIT *)
+        i1 >= n and i2 < n and i2 = k and dk1 = dk2 and hit1 and
+        i1' = i1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = 0
+    ) or (
+        i1 >= n and i2 < n and i2 = k and dk1 = dk2 and !hit1 and
+        i1' = i1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = 1
+    ) or (
+        i1 >= n and i2 < n and i2 = k and dk1 <> dk2 and
+        i1' = i1 and i2' = i2 + 1 and
+        (hit1' and hit1 or !hit1' and !hit1) and hit2' and l1' = l1 + 1
+    ) or (
+        (* MISS-Finished, Finished-MISS, Finished-Finished: no change *)
+        (i1 >= n or i1 <> k) and (i2 >= n or i2 <> k) and
+        (i1 < n and i1' = i1 + 1 or i1 >= n and i1' = i1) and
+        (i2 < n and i2' = i2 + 1 or i2 >= n and i2' = i2) and
+        (hit1' and hit1 or !hit1' and !hit1) and
+        (hit2' and hit2 or !hit2' and !hit2) and
+        l1' = l1
+    ).
+
+
+(******************************************************************************)
+(* SCHEDULER                                                                  *)
+(******************************************************************************)
+
+i1 < n :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    SchTF(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    i2 < n.
+
+i2 < n :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    SchFT(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    i1 < n.
+
+SchTF(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+SchFT(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+SchTT(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n) :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    i1 < n or i2 < n.
+
+
+(******************************************************************************)
+(* GOAL: L1 Sensitivity 2                                                     *)
+(*                                                                            *)
+(* Violation: l1 > 2 should be UNSAT                                         *)
+(******************************************************************************)
+
+l1 > 2 :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    n <= i1, n <= i2.
+
+
+(******************************************************************************)
+(* TEST QUERIES                                                               *)
+(******************************************************************************)
+
+(*
+(* Test 1: L1 \u2264 2 achievable - should be SAT *)
+l1 <= 2 :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    n <= i1, n <= i2.
+
+(* Test 2: L1 = 2 when dk1 \u2260 dk2 - should be SAT *)
+l1 = 2 :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    n <= i1, n <= i2, dk1 <> dk2.
+
+(* Test 3: L1 = 0 when dk1 = dk2 - should be SAT *)
+l1 = 0 :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    n <= i1, n <= i2, dk1 = dk2.
+
+(* Test 4: L1 > 0 when dk1 = dk2? - should be UNSAT *)
+l1 > 0 :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    n <= i1, n <= i2, dk1 = dk2.
+
+(* Test 5: Sensitivity 1 too tight - should be SAT *)
+l1 > 1 :-
+    Inv(i1, i2, k, dk1, dk2, hit1:bool, hit2:bool, l1, n),
+    n <= i1, n <= i2.
+*)`.trim();
+
+// Render source with line numbers and syntax highlighting
+function renderSource() {
+  const lines = sourceCode.split('\n');
+  const numEl = document.getElementById('line-nums');
+  const codeEl = document.getElementById('source-code');
+
+  let numsHtml = '';
+  let codeHtml = '';
+
+  lines.forEach((line, i) => {
+    numsHtml += '<span>' + (i + 1) + '</span>';
+    codeHtml += highlightLine(escapeHtml(line)) + '\n';
+  });
+
+  numEl.innerHTML = numsHtml;
+  codeEl.innerHTML = codeHtml;
+}
+
+function escapeHtml(s) {
+  return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+}
+
+function highlightLine(line) {
+  // Comments
+  line = line.replace(/(\(\*.*?\*\))/g, '<span class="comment">$1</span>');
+  line = line.replace(/(\/\/.*$)/g, '<span class="comment">$1</span>');
+
+  // Predicates
+  line = line.replace(/\b(Inv|SchTF|SchFT|SchTT)\b/g, '<span class="predicate">$1</span>');
+
+  // Keywords
+  line = line.replace(/\b(and|or|not)\b/g, '<span class="keyword">$1</span>');
+  line = line.replace(/(:-)/g, '<span class="keyword">$1</span>');
+
+  // Booleans and types
+  line = line.replace(/\b(bool|true|false)\b/g, '<span class="bool">$1</span>');
+
+  // Operators
+  line = line.replace(/(&lt;=|&gt;=|&lt;&gt;|&lt;|&gt;)/g, '<span class="operator">$1</span>');
+
+  return line;
+}
+
+function copySource() {
+  navigator.clipboard.writeText(sourceCode).then(() => {
+    const btn = document.querySelector('.copy-btn');
+    btn.textContent = 'Copied!';
+    setTimeout(() => btn.textContent = 'Copy to clipboard', 2000);
+  });
+}
+
+// Initialize
+renderSource();
+</script>
+
+</body>
+</html>
